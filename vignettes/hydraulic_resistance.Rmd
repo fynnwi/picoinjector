@@ -1,0 +1,99 @@
+---
+title: "Hydraulic resistance"
+output: rmarkdown::html_vignette
+bibliography: "bibliography.bib"
+vignette: >
+  %\VignetteIndexEntry{Hydraulic resistance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(picoinjector)
+library(ggplot2)
+```
+
+## Straight circular channel
+
+Hydraulic analogy of Ohm's law:
+
+$$\Delta P = R_h Q$$ with $R_h$ hydraulic resistance.
+
+For a (straight) channel with circular cross-section, the hydraulic resistance is defined as $R_h = \frac{8 \mu L}{\pi r^4}$ with $\mu$ dynamic viscosity, $L$ channel length, and $r$ channel radius [@bruus_theoretical_2008].
+For water I am using $\mu = 8.9 \cdot 10^{-4} \; \mathrm{Pa \cdot s}$.
+
+
+
+```{r}
+muWater <- 8.9e-4
+radiusTygon <- 0.508e-3 /2
+radiusPTFE <- 0.8e-3 /2
+
+getHydraulicResistance <- function(mu, length, radius) {
+  return(8 * mu * length / pi / radius^4)
+}
+```
+
+
+
+Plot hydraulic resistance over tubing length:
+
+```{r}
+resistance <- tibble::tibble("length" = seq(1,1000) * 1e-3, # unit: meters
+               "tygon" = getHydraulicResistance(muWater, length, radiusTygon),
+               "ptfe" = getHydraulicResistance(muWater, length, radiusPTFE)) %>% 
+  tidyr::pivot_longer(!length, names_to = "type", values_to = "r_hydraulic")
+resistance
+
+ggplot(resistance, aes(x = length*1e2, y = r_hydraulic*1e-11, color = type)) + 
+  geom_line() + 
+  scale_color_viridis_d(labels = c("PTFE", "Tygon")) + 
+  labs(x = "Tubing length [cm]",
+       y = "Hydraulic resistance [10¹¹ Pa s m⁻³]",
+       color = "Tubing type") + 
+  theme_pretty()
+```
+
+
+
+
+
+Plot flow rate resulting from pressure drop of 1 Pa as function of tubing length:
+
+```{r}
+resistance %>% 
+  dplyr::mutate("q" = 1 / r_hydraulic) %>%
+  dplyr::filter(length >= 0.05) %>% # ignore tubing lengths < 5cm
+  ggplot(aes(x = length*1e2, y = q * 1e9, color = type)) + # convert m^3/s into uL/s
+  geom_line() + 
+  scale_color_viridis_d(labels = c("PTFE", "Tygon")) + 
+  labs(x = "Tubing length [cm]",
+       y = "Flow rate at 1 Pa [uL/s]",
+       color = "Tubing type") + 
+  theme_pretty()
+```
+
+
+
+
+
+
+
+## Straight rectangular channel
+
+TODO
+
+
+
+## Networks
+
+TODO
+
+## References
