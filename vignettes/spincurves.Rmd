@@ -1,9 +1,9 @@
 ---
-title: "Spincurve Analysis"
+title: "SU-8 3035 Spincurve Analysis"
 output: rmarkdown::html_vignette
 bibliography: "bibliography.bib"
 vignette: >
-  %\VignetteIndexEntry{Spincurve Analysis}
+  %\VignetteIndexEntry{SU-8 3035 Spincurve Analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,11 +16,18 @@ knitr::opts_chunk$set(
 ```
 
 
+<!-- To do: -->
+
+<!-- - change units to um and mm -->
+
+
+
+
 ## introduction
 
 For my microfluidic chips, channel heights in the range of 20-30 um are desired.
 To obtain these heights during the photolithography process, a photoresist with suitable viscosity is required.
-![SU-8 3000 thickness](images/001_su8_3000_spincurves.png){ width=50% }
+![SU-8 3000 thickness](images/001_su8_3000_spincurves.png){ width=50% } 
 
 These are the spin curves for the SU-8 3000 series [@noauthor_su-8_nodate].
 It seems like SU-8 3035 can yield thicknesses in the desired range (extrapolating for higher RPMs, and from the experience that at 6000 RPM 30 um thickness can be achieved with SU-8 3050).
@@ -117,44 +124,45 @@ results
 The raw data looks like this:
 
 ```{r}
-results %>% 
+profile <- results %>% 
   # filter for single trace
-  filter(id == "00_job9945_eastwest.csv") %>% 
-  plot_heightprofile()
-  
+  filter(id == "00_job9945_eastwest.csv")
+
+plot_heightprofile(profile)
 ```
+
+## baseline correction
 
 Now I use the geometrical information of my design to determine peaks and valleys in the trace.
 First, I find the positions (x coordinate) of the leftmost and rightmost structure using the slope of the graph, and then I rescale everything so that it spans the known width of 40.5 mm that was written on the wafer.
 The rescaling is necessary in case the trace was not perfectly aligned with the structure, i.e. slightly diagonal and therefore a little bit longer.
 
 ```{r}
-results %>% 
-  # filter for single trace
-  filter(id == "00_job9945_eastwest.csv", 
-         position < 1000) %>% # zoom at left-most peak
+profile %>% 
+  filter(position < 1000) %>% # zoom at left-most peak
   plot_heightprofile()
 ```
 
 
-To find the x coordinate were the first structure begins, I calculate the first derivative (lagged differences) in order to identify regions with high slope.
+To find the x coordinate were the first structure begins, I calculate the first derivative of the height profile (lagged differences) in order to identify regions with large slope.
 The first derivative of above graph then looks like this:
 
 ```{r}
-# subset the data
-df <- results %>% 
-  filter(id == "00_job9945_eastwest.csv",
-         position < 1000)
 # lagged differences parameters
 lag <- 10
 dif <- 1
 offset <- dif * lag
-dHeight <- diff(df$height, lag = lag, differences = dif) / diff(df$position, lag = lag, differences = dif)
-# adjust dimension of x axis (lagging difference removes the first l elements):
-pos <- df$position[(offset+1):length(df$position)]
 
-ggplot(data.frame(pos, dHeight), aes(x = pos, y = dHeight)) + 
-  # geom_point(shape = 23)  +
+# calculate derivative
+derivative <- tibble(
+  "d_height" = diff(profile$height, lag = lag, differences = dif) / diff(profile$position, lag = lag, differences = dif),
+  # adjust dimension of x axis (lagging difference removes the first l elements):
+  "position" = profile$position[(offset+1):length(profile$position)]
+)
+
+derivative %>% 
+  filter(position < 1000) %>% # zoom to first structure
+  ggplot(aes(x = position, y = d_height)) +
   geom_line() + 
   labs(title = "Derivative of height profile",
        subtitle = paste("Lag =", lag, ", difference order =", dif),
@@ -162,6 +170,277 @@ ggplot(data.frame(pos, dHeight), aes(x = pos, y = dHeight)) +
        y = "Lagged difference magnitude") + 
   theme_pretty()
 ```
+
+The `lag` parameter defines the sliding window size that should be used for difference calculation and can be used to smooth the resulting derivative plot.
+For the remainder of this analysis, I will use `lag = 10`.
+
+
+This function finds the index of the first edge of the height profile, which should correspond to the edge of the first structure on the wafer (left-to-right).
+The x coordinate where the derivative first exceeds a give threshold `minSlope` is identified as an edge.
+For this analysis I am using `minSlope = 500`.
+
+```{r}
+get_index_first_peak <- function(values, minSlope) {
+  # find the first maximum
+  i <- 1
+  while (TRUE) {
+    if (values[i] > minSlope) {
+      return(i)
+    }
+    i <- i+1
+  }
+}
+get_index_first_peak(derivative$d_height, 500)
+```
+
+Now above defined function can be used to determine the start and end coordinate of a profile.
+Using this information, the total length of a profile can be rescaled to cover 40.5 mm which is known from the initial AutoCAD design.
+This function detects the beginning and end of the height profile and then rescales the corresponding lateral position
+
+```{r}
+rescale_profile <- function(profile, lag, minSlope) {
+  # calculate derivative of height w.r.t. position
+  dHeight <- diff(profile[["height"]], lag = lag) / diff(profile[["position"]], lag = lag)
+  # get index of first peak
+  first <- get_index_first_peak(dHeight, minSlope)
+  # get index of last peak
+  last <- get_index_first_peak(rev(dHeight)* (-1), minSlope)
+  
+  # convert indices into corresponding position value
+  posFirst <- profile[["position"]][first + lag]
+  posLast <- rev(profile[["position"]])[last]
+  
+  # rescale everything: distance between first and last position should be exactly 45mm
+  # discard data outside of the interval
+  profile[(first + lag):(nrow(profile)-last), ] %>% 
+    mutate(position = seq(0, 40500, length.out = n())) %>% 
+    return()
+}
+```
+
+A rescaled profile then looks like this. 
+Note how the beginning and end are truncated, compared to the plot of the same trace shown above.
+
+```{r}
+profileRescaled <- profile %>% 
+  rescale_profile(lag = 10, minSlope = 500)
+
+plot_heightprofile(profileRescaled)
+```
+
+
+Next, the geometrical information known from the AutoCAD design can be used to identify the peaks and valleys present in the design.
+At the valleys, the height profile is then sampled at discrete points in order to capture the baseline shift.
+These discrete baseline points will later be used to fit a continuous baseline curve.
+
+```{r}
+get_baseline_points <- function(profile) {
+  # sample points to capture the baseline
+  samplePoints <- seq(750, 40500, by = 1000)
+  # exclude center region (has no gap)
+  samplePoints <- samplePoints[samplePoints < 19000 | samplePoints > 21500]
+  xIndices <- sapply(samplePoints, function(x,y) which.min(abs(x-y)), profile[["position"]])
+  
+  # return baseline points
+  tibble("position" = profile[["position"]][xIndices],
+         "height" = profile[["height"]][xIndices]) %>% 
+    return()
+}
+```
+
+The sampled baseline data points look like this:
+
+```{r}
+baselinePoints <- profileRescaled %>% 
+  get_baseline_points()
+
+baselinePoints
+
+profileRescaled %>% 
+  plot_heightprofile() +
+  geom_point(data = baselinePoints, shape = 23, color = "firebrick1")
+```
+
+Use LOESS regression to fit curve to the baseline data points:
+
+```{r}
+baseline_regression <- function(profile, baselinePoints, loessSpan) {
+  # LOESS regression to fit a function to the baseline data points
+  loessModel <- loess(height ~ position, data = baselinePoints, span = loessSpan)
+  
+  # extrapolate
+  profile %>% 
+    mutate("baseline" = predict(loessModel, position)) %>% 
+    return()
+}
+```
+
+Regression of the baseline points looks like this:
+
+```{r}
+profileRescaled %>% 
+  baseline_regression(baselinePoints, loessSpan = 0.2) %>% 
+  plot_heightprofile() +
+  geom_line(aes(y = baseline), color = "firebrick2")
+```
+
+Note: loess regression doesn't allow extrapolation, removes leftmost and rightmost data points.
+
+The regression line can the be subtracted from the height data in order to level all the valleys to zero.
+
+```{r}
+subtract_baseline <- function(profile) {
+  profile %>% 
+    mutate(height = height - baseline) %>% 
+    filter(!is.na(height)) %>% 
+    select(!baseline) %>% 
+    return()
+}
+
+profileRescaled %>% 
+  baseline_regression(baselinePoints, loessSpan = 0.2) %>% 
+  subtract_baseline() %>% 
+  plot_heightprofile() 
+```
+
+This function combines all the steps:
+
+```{r}
+baseline_correction <- function(profile) {
+  # lag and minSlope are hardcoded in here!
+  rescaled <- profile %>% 
+    rescale_profile(10, 500)
+  
+  baselinePoints <- rescaled %>% 
+    get_baseline_points()
+  
+  rescaled %>% 
+    baseline_regression(baselinePoints, 0.2) %>% 
+    subtract_baseline() %>% 
+    return()
+}
+```
+
+
+Iterate over all the traces and correct for baseline shift:
+
+```{r}
+resultsCorrected <- tibble()
+for (traceId in unique(results$id)) {
+  corrected <- results %>% 
+    filter(id == traceId) %>% 
+    baseline_correction()
+  resultsCorrected <- bind_rows(resultsCorrected, corrected)
+}
+```
+
+
+This function can be used to plot the baseline-corrected profiles for every wafer:
+
+```{r, fig.width=10, fig.height=10}
+p <- plot_heightprofile_bywafer(resultsCorrected)
+print(p)
+```
+
+As can be seen in this overview plot, the baseline correction method seems to work for all the profiles.
+
+
+## post-processing
+
+The next step in the analysis is to summarize the duplicate measurements that exist for every structure, and interpolate the height profile across the gaps, in order to obtain a comprehensive plot that describes the spin coating thickness as a function of the radial distance from the wafer center, as well as RPM and spin time.
+
+Function that removes the baseline segments of the data using the known locations of valleys in the structure, and interpolating those values from the surrounding data:
+
+```{r}
+# Geometrically, a valley is 500 µm wide. Set to a larger value than that to filter out overshoots in the signal at the edges
+interpolate_valleys <- function(profile, width = 650) {
+  
+  ## 1. remove gap data
+  # the baseline centers are supposed to be located right in the middle of the valleys
+  baselineCenters <- seq(-250, 42000, by = 1000)
+  # exclude middle region
+  # baselineCenters <- baselineCenters[baselineCenters < 19000 | baselineCenters > 21500]
+  baselinePositions <- sapply(baselineCenters, function(x) seq(x-0.5*width, x + 0.5*width)) %>% 
+    as.numeric()
+  
+  positionsRounded <- round(profile[["position"]])
+  idx <- !positionsRounded %in% baselinePositions
+  
+  positions <- profile$position[idx]
+  height <- profile$height[idx]
+  
+  ## 2. interpolate between gaps
+  a <- approx(positions, height, profile$position)
+  
+  profile %>% 
+    mutate(height = a$y) %>% 
+    filter(!is.na(height)) %>% 
+    return()
+}
+```
+
+The resulting height profile does not contain gaps anymore:
+
+```{r}
+resultsCorrected %>% 
+  filter(id == "00_job9945_eastwest.csv") %>% 
+  interpolate_valleys() %>% 
+  plot_heightprofile() + 
+  ylim(c(0, 50000))
+```
+
+Do this for all traces and show them in a single plot:
+
+```{r, fig.width=10, fig.height=10}
+resultsInterpolated <- tibble()
+for (traceId in unique(resultsCorrected$id)) {
+  r <- resultsCorrected %>% 
+    filter(id == traceId) %>% 
+    interpolate_valleys()
+  resultsInterpolated <- bind_rows(resultsInterpolated, r)
+}
+```
+
+
+```{r, fig.width=10, fig.height=10}
+ggplot(resultsInterpolated, aes(x = position, y = height, color = direction)) + 
+  geom_line() + 
+  facet_wrap(~ wafer) + 
+  theme_pretty() + 
+  labs(x = "Lateral position 8um]",
+       y = "Height [nm]",
+       color = "Trace")
+
+```
+
+
+Function to zero-center the profiles and flip values with negative `position` coordinate so that the x-axis measures radial distance from wafer center.
+
+```{r}
+center_and_mirror <- function(resultsCorrected) {
+  resultsCorrected %>% 
+    group_by(wafer, direction) %>% 
+    arrange(position, .by_group = TRUE) %>% 
+    mutate(height = case_when(direction %in% c("southnorth", "westeast") ~ rev(height),
+                                        TRUE ~ height)) %>% 
+    # center around zero
+    mutate(position = position - 0.5 * max(position)) %>% 
+    ungroup()
+  return(res)
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## references

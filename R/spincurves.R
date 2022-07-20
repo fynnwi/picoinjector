@@ -15,3 +15,19 @@ plot_heightprofile <- function(heights) {
     theme_pretty()
   return(p)
 }
+
+
+
+
+#' Plot Height Profiles By Wafer
+#'
+#' @param heights TODO
+#'
+#' @return A ggplot object.
+#' @export
+#'
+plot_heightprofile_bywafer <- function(heights) {
+  p <- plot_heightprofile(heights) +
+    facet_grid(wafer ~ direction)
+  return(p)
+}
