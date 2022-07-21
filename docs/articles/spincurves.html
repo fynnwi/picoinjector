@@ -105,6 +105,36 @@ reference level quite significantly, which necessitates a correction
 before data evalutation. Therefore, the cross structure exposed on the
 wafer includes repeated gaps in order to pick up the zero-level along
 the entire wafer.</p>
+<p>These are the wafer ids corresponding to a certain combination of
+spin time and spin speed:</p>
+<table class="table">
+<colgroup>
+<col width="23%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th>spin time / RPM</th>
+<th>3000</th>
+<th>4000</th>
+<th>5000</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>30 s</td>
+<td>job9945, job9946</td>
+<td>job9947, job9948</td>
+<td>job9949, job9950</td>
+</tr>
+<tr class="even">
+<td>60 s</td>
+<td>job10055</td>
+<td>job10053</td>
+<td>job10054</td>
+</tr>
+</tbody>
+</table>
 <p>For each wafer, four traces were measured: top-to-bottom,
 left-to-right, bottom-to-top, and right-to-left (see figure). This
 results in duplicate measurements for all the structures.</p>
@@ -445,7 +475,7 @@ distance from the wafer center, as well as RPM and spin time.</p>
 known locations of valleys in the structure, and interpolating those
 values from the surrounding data:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Geometrically, a valley is 500 µm wide. Set to a larger value than that to filter out overshoots in the signal at the edges</span>
+<code class="sourceCode R"><span class="co"># Geometrically, a valley is 500 um wide. Set to a larger value than that to filter out overshoots in the signal at the edges</span>
 <span class="va">interpolate_valleys</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">profile</span>, <span class="va">width</span> <span class="op">=</span> <span class="fl">650</span><span class="op">)</span> <span class="op">{</span>
   
   <span class="co">## 1. remove gap data</span>
@@ -490,27 +520,155 @@ values from the surrounding data:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">resultsInterpolated</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">position</span>, y <span class="op">=</span> <span class="va">height</span>, color <span class="op">=</span> <span class="va">direction</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">wafer</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Lateral position 8um]"</span>,
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Lateral position [um]"</span>,
        y <span class="op">=</span> <span class="st">"Height [nm]"</span>,
        color <span class="op">=</span> <span class="st">"Trace"</span><span class="op">)</span></code></pre></div>
 <p><img src="spincurves_files/figure-html/unnamed-chunk-22-1.png" width="960"></p>
-<p>Function to zero-center the profiles and flip values with negative
-<code>position</code> coordinate so that the x-axis measures radial
-distance from wafer center.</p>
+<p>For each wafer, four traces were measured, of which pairs of two
+should be identical to each other: trace south-north measures the same
+structure as north-south, and the same is true for traces east-west and
+west-east. In above graph, this similarity is not obvious, because the
+measurement directions are reversed (west-east goes left-to-right and
+east-west the other way around). Therefore, two of the four traces have
+to be reversed, so that the only measurement directions are
+<em>top-to-bottom</em> and <em>left-to-right</em>. Furthermore, the data
+will be centered around zero, so that the origin is located in the wafer
+center.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">center_and_mirror</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">resultsCorrected</span><span class="op">)</span> <span class="op">{</span>
-  <span class="va">resultsCorrected</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+<code class="sourceCode R"><span class="va">mirror_and_center</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">resultsInterpolated</span><span class="op">)</span> <span class="op">{</span>
+  <span class="va">resultsInterpolated</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
     <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">wafer</span>, <span class="va">direction</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
     <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">position</span>, .by_group <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
-    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>height <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span><span class="va">direction</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"southnorth"</span>, <span class="st">"westeast"</span><span class="op">)</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/rev.html" class="external-link">rev</a></span><span class="op">(</span><span class="va">height</span><span class="op">)</span>,
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>height <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span><span class="va">direction</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"southnorth"</span>, <span class="st">"eastwest"</span><span class="op">)</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/rev.html" class="external-link">rev</a></span><span class="op">(</span><span class="va">height</span><span class="op">)</span>,
                                         <span class="cn">TRUE</span> <span class="op">~</span> <span class="va">height</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
     <span class="co"># center around zero</span>
     <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>position <span class="op">=</span> <span class="va">position</span> <span class="op">-</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">position</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
-    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span>
-  <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span>
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
+<p>Now there is a lot more similarity going on in the height profiles.
+Of the four traces, those in horizontal and vertical direction,
+respectively, should be overlapping to a large degree.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">heights</span> <span class="op">&lt;-</span> <span class="va">resultsInterpolated</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+  <span class="fu">mirror_and_center</span><span class="op">(</span><span class="op">)</span>
+
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">heights</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">position</span>, y <span class="op">=</span> <span class="va">height</span>, color <span class="op">=</span> <span class="va">direction</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">wafer</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Lateral position [um]"</span>,
+       y <span class="op">=</span> <span class="st">"Height [nm]"</span>,
+       color <span class="op">=</span> <span class="st">"Trace"</span><span class="op">)</span></code></pre></div>
+<p><img src="spincurves_files/figure-html/unnamed-chunk-24-1.png" width="960"></p>
+<p>For a single wafer:</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">heights</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">wafer</span> <span class="op">==</span> <span class="st">"job9946"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">position</span>, y <span class="op">=</span> <span class="va">height</span>, color <span class="op">=</span> <span class="va">direction</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Position from wafer center [um]"</span>,
+       y <span class="op">=</span> <span class="st">"Height [nm]"</span>,
+       color <span class="op">=</span> <span class="st">"Trace direction"</span><span class="op">)</span></code></pre></div>
+<p><img src="spincurves_files/figure-html/unnamed-chunk-25-1.png" width="700"></p>
+<p>The duplicate measurements of the horizontal and vertical structure
+will be averaged.</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">average_duplicate_traces</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">heights</span><span class="op">)</span> <span class="op">{</span>
+  <span class="va">heights</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">position</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">rpm</span>, <span class="va">wafer</span>, <span class="va">spintime</span>, <span class="va">orientation</span>, <span class="va">position</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>height <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">height</span><span class="op">)</span><span class="op">)</span>,
+              height_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">height</span><span class="op">)</span>,
+              .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="op">)</span>
+<span class="op">}</span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">heights</span> <span class="op">&lt;-</span> <span class="va">heights</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+  <span class="fu">average_duplicate_traces</span><span class="op">(</span><span class="op">)</span>
+
+<span class="va">heights</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">position</span>, y <span class="op">=</span> <span class="va">height</span>, color <span class="op">=</span> <span class="va">orientation</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Position from wafer center [um]"</span>,
+       y <span class="op">=</span> <span class="st">"Height [nm]"</span>,
+       color <span class="op">=</span> <span class="st">"Trace direction"</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">wafer</span><span class="op">)</span></code></pre></div>
+<p><img src="spincurves_files/figure-html/unnamed-chunk-27-1.png" width="960"></p>
+<p>Finally, since the spin coating process should be radially
+symmetrical more or less (ideally), I want to describe the height
+profile as a function of the radial distance from the wafer center. To
+that end, data with negative position coordinate will be flipped over
+into the positive range.</p>
+<p><img src="images/005_spincurve_cross_pattern_quadrants.png" alt="Spincurve cross pattern quadrants"> { width=50% }</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">make_radial</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">heights</span><span class="op">)</span> <span class="op">{</span>
+  <span class="va">heights</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>quadrant <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span><span class="va">orientation</span> <span class="op">==</span> <span class="st">"vertical"</span> <span class="op">&amp;</span> <span class="va">position</span> <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">~</span> <span class="st">"south"</span>,
+                                <span class="va">orientation</span> <span class="op">==</span> <span class="st">"vertical"</span> <span class="op">&amp;</span> <span class="va">position</span> <span class="op">&gt;=</span> <span class="fl">0</span> <span class="op">~</span> <span class="st">"north"</span>,
+                                <span class="va">orientation</span> <span class="op">==</span> <span class="st">"horizontal"</span> <span class="op">&amp;</span> <span class="va">position</span> <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">~</span> <span class="st">"west"</span>,
+                                <span class="va">orientation</span> <span class="op">==</span> <span class="st">"horizontal"</span> <span class="op">&amp;</span> <span class="va">position</span> <span class="op">&gt;=</span> <span class="fl">0</span> <span class="op">~</span> <span class="st">"east"</span>,
+                                <span class="cn">TRUE</span> <span class="op">~</span> <span class="st">"ERROR"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="co"># flip values with negative position coordinate into positive range</span>
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span><span class="va">position</span> <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">~</span> <span class="op">-</span><span class="va">position</span>,
+                                <span class="cn">TRUE</span> <span class="op">~</span> <span class="va">position</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="op">)</span>
+<span class="op">}</span>
+
+<span class="va">heightsRadial</span> <span class="op">&lt;-</span> <span class="va">heights</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+  <span class="fu">make_radial</span><span class="op">(</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">heightsRadial</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">position</span>, y <span class="op">=</span> <span class="va">height</span>, color <span class="op">=</span> <span class="va">quadrant</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">wafer</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Distance from wafer center [um]"</span>,
+       y <span class="op">=</span> <span class="st">"Height [nm]"</span>,
+       color <span class="op">=</span> <span class="st">"Quadrant"</span><span class="op">)</span></code></pre></div>
+<p><img src="spincurves_files/figure-html/unnamed-chunk-29-1.png" width="960"></p>
+<p>Plot by RPM and spintime:</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw">for</span> <span class="op">(</span><span class="va">r</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">heightsRadial</span><span class="op">$</span><span class="va">rpm</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+  <span class="va">p</span> <span class="op">&lt;-</span> <span class="va">heightsRadial</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">rpm</span> <span class="op">==</span> <span class="va">r</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">position</span><span class="op">*</span><span class="fl">1e-3</span>, y <span class="op">=</span> <span class="va">height</span><span class="op">*</span><span class="fl">1e-3</span>, color <span class="op">=</span> <span class="va">wafer</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_vline</a></span><span class="op">(</span>xintercept <span class="op">=</span> <span class="fl">25.4</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interaction.html" class="external-link">interaction</a></span><span class="op">(</span><span class="va">wafer</span>, <span class="va">quadrant</span><span class="op">)</span>, linetype <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">spintime</span><span class="op">)</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">0.5</span>, alpha <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span> 
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Distance from wafer center [mm]"</span>,
+         y <span class="op">=</span> <span class="st">"Coating thickness [um]"</span>,
+         linetype <span class="op">=</span> <span class="st">"Spintime [s]"</span>,
+         color <span class="op">=</span> <span class="st">"Wafer id"</span>,
+         title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">r</span>, <span class="st">"RPM"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+    <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">60</span><span class="op">)</span><span class="op">)</span>
+  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span>
+<span class="op">}</span></code></pre></div>
+<p><img src="spincurves_files/figure-html/unnamed-chunk-30-1.png" width="700"><img src="spincurves_files/figure-html/unnamed-chunk-30-2.png" width="700"><img src="spincurves_files/figure-html/unnamed-chunk-30-3.png" width="700"></p>
+</div>
+<div class="section level2">
+<h2 id="conclusions">conclusions<a class="anchor" aria-label="anchor" href="#conclusions"></a>
+</h2>
+<ul>
+<li>spin coating results in circular inner region of uniform thickness
+and outer rim with thicker coating</li>
+<li>spinning for longer time (60 instead of 30 s) seems to expand the
+inner region</li>
+<li>higher variation in thickness across wafers for lower RPM (3000,
+4000)</li>
+<li>place chip designs radially symmetrical on the wafer to increase
+uniformness</li>
+</ul>
 </div>
 <div class="section level2 unnumbered">
 <h2 class="unnumbered" id="references">references<a class="anchor" aria-label="anchor" href="#references"></a>

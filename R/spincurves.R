@@ -26,6 +26,7 @@ plot_heightprofile <- function(heights) {
 #' @return A ggplot object.
 #' @export
 #'
+#' @importFrom ggplot2 facet_grid
 plot_heightprofile_bywafer <- function(heights) {
   p <- plot_heightprofile(heights) +
     facet_grid(wafer ~ direction)

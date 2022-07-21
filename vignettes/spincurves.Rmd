@@ -46,6 +46,13 @@ After photolithography, the resulting height profiles were measured using a Dekt
 Unfortunately, when measuring over long distances with this machine, measurements are drifting away from the reference level quite significantly, which necessitates a correction before data evalutation.
 Therefore, the cross structure exposed on the wafer includes repeated gaps in order to pick up the zero-level along the entire wafer.
 
+These are the wafer ids corresponding to a certain combination of spin time and spin speed:
+
+| spin time / RPM | 3000             | 4000             | 5000             |
+|-----------------|------------------|------------------|------------------|
+| 30 s            | job9945, job9946 | job9947, job9948 | job9949, job9950 |
+| 60 s            | job10055         | job10053         | job10054         |
+
 For each wafer, four traces were measured: top-to-bottom, left-to-right, bottom-to-top, and right-to-left (see figure).
 This results in duplicate measurements for all the structures.
 
@@ -352,7 +359,7 @@ The next step in the analysis is to summarize the duplicate measurements that ex
 Function that removes the baseline segments of the data using the known locations of valleys in the structure, and interpolating those values from the surrounding data:
 
 ```{r}
-# Geometrically, a valley is 500 µm wide. Set to a larger value than that to filter out overshoots in the signal at the edges
+# Geometrically, a valley is 500 um wide. Set to a larger value than that to filter out overshoots in the signal at the edges
 interpolate_valleys <- function(profile, width = 650) {
   
   ## 1. remove gap data
@@ -405,28 +412,155 @@ for (traceId in unique(resultsCorrected$id)) {
 ```{r, fig.width=10, fig.height=10}
 ggplot(resultsInterpolated, aes(x = position, y = height, color = direction)) + 
   geom_line() + 
+  geom_hline(yintercept = 0) + 
   facet_wrap(~ wafer) + 
   theme_pretty() + 
-  labs(x = "Lateral position 8um]",
+  labs(x = "Lateral position [um]",
        y = "Height [nm]",
        color = "Trace")
-
 ```
 
+For each wafer, four traces were measured, of which pairs of two should be identical to each other: trace south-north measures the same structure as north-south, and the same is true for traces east-west and west-east.
+In above graph, this similarity is not obvious, because the measurement directions are reversed (west-east goes left-to-right and east-west the other way around).
+Therefore, two of the four traces have to be reversed, so that the only measurement directions are _top-to-bottom_ and _left-to-right_.
+Furthermore, the data will be centered around zero, so that the origin is located in the wafer center.
 
-Function to zero-center the profiles and flip values with negative `position` coordinate so that the x-axis measures radial distance from wafer center.
 
 ```{r}
-center_and_mirror <- function(resultsCorrected) {
-  resultsCorrected %>% 
+mirror_and_center <- function(resultsInterpolated) {
+  resultsInterpolated %>% 
     group_by(wafer, direction) %>% 
     arrange(position, .by_group = TRUE) %>% 
-    mutate(height = case_when(direction %in% c("southnorth", "westeast") ~ rev(height),
+    mutate(height = case_when(direction %in% c("southnorth", "eastwest") ~ rev(height),
                                         TRUE ~ height)) %>% 
     # center around zero
     mutate(position = position - 0.5 * max(position)) %>% 
-    ungroup()
-  return(res)
+    ungroup() %>% 
+    return()
+}
+```
+
+
+Now there is a lot more similarity going on in the height profiles.
+Of the four traces, those in horizontal and vertical direction, respectively, should be overlapping to a large degree.
+
+```{r, fig.width=10, fig.height=10}
+heights <- resultsInterpolated %>% 
+  mirror_and_center()
+
+ggplot(heights, aes(x = position, y = height, color = direction)) + 
+  geom_line() + 
+  geom_hline(yintercept = 0) + 
+  facet_wrap(~ wafer) + 
+  theme_pretty() + 
+  labs(x = "Lateral position [um]",
+       y = "Height [nm]",
+       color = "Trace")
+```
+
+For a single wafer:
+
+```{r}
+heights %>% 
+  filter(wafer == "job9946") %>% 
+  ggplot(aes(x = position, y = height, color = direction)) + 
+  geom_line() + 
+  geom_hline(yintercept = 0) + 
+  theme_pretty() + 
+  labs(x = "Position from wafer center [um]",
+       y = "Height [nm]",
+       color = "Trace direction")
+```
+
+
+The duplicate measurements of the horizontal and vertical structure will be averaged.
+
+```{r}
+average_duplicate_traces <- function(heights) {
+  heights %>% 
+    mutate(position = round(position)) %>% 
+    group_by(rpm, wafer, spintime, orientation, position) %>% 
+    summarise(height = round(mean(height)),
+              height_sd = sd(height),
+              .groups = "drop") %>% 
+    return()
+}
+```
+
+
+```{r, fig.width=10, fig.height=10}
+heights <- heights %>% 
+  average_duplicate_traces()
+
+heights %>% 
+  ggplot(aes(x = position, y = height, color = orientation)) + 
+  geom_line() + 
+  geom_hline(yintercept = 0) + 
+  theme_pretty() + 
+  labs(x = "Position from wafer center [um]",
+       y = "Height [nm]",
+       color = "Trace direction") + 
+  facet_wrap(~ wafer)
+```
+
+
+Finally, since the spin coating process should be radially symmetrical more or less (ideally), I want to describe the height profile as a function of the radial distance from the wafer center.
+To that end, data with negative position coordinate will be flipped over into the positive range.
+
+![Spincurve cross pattern quadrants](images/005_spincurve_cross_pattern_quadrants.png) { width=50% }
+
+
+```{r}
+make_radial <- function(heights) {
+  heights %>% 
+    mutate(quadrant = case_when(orientation == "vertical" & position < 0 ~ "south",
+                                orientation == "vertical" & position >= 0 ~ "north",
+                                orientation == "horizontal" & position < 0 ~ "west",
+                                orientation == "horizontal" & position >= 0 ~ "east",
+                                TRUE ~ "ERROR")) %>% 
+    # flip values with negative position coordinate into positive range
+    mutate(position = case_when(position < 0 ~ -position,
+                                TRUE ~ position)) %>% 
+    ungroup() %>% 
+    return()
+}
+
+heightsRadial <- heights %>% 
+  make_radial()
+```
+
+
+```{r, fig.width=10, fig.height=10}
+ggplot(heightsRadial, aes(x = position, y = height, color = quadrant)) + 
+  geom_line() + 
+  geom_hline(yintercept = 0) + 
+  facet_wrap(~ wafer) + 
+  theme_pretty() + 
+  labs(x = "Distance from wafer center [um]",
+       y = "Height [nm]",
+       color = "Quadrant")
+```
+
+
+Plot by RPM and spintime:
+
+
+```{r}
+for (r in unique(heightsRadial$rpm)) {
+  p <- heightsRadial %>% 
+    filter(rpm == r) %>% 
+    ggplot(aes(x = position*1e-3, y = height*1e-3, color = wafer)) + 
+    geom_vline(xintercept = 25.4, linetype = "dashed") +
+    geom_line(aes(group = interaction(wafer, quadrant), linetype = factor(spintime)), size = 0.5, alpha = 0.7) + 
+    labs(x = "Distance from wafer center [mm]",
+         y = "Coating thickness [um]",
+         linetype = "Spintime [s]",
+         color = "Wafer id",
+         title = paste(r, "RPM")) + 
+    scale_color_viridis_d() + 
+    theme_pretty() + 
+    ylim(c(0, 60))
+  print(p)
 }
 ```
 
@@ -434,10 +568,12 @@ center_and_mirror <- function(resultsCorrected) {
 
 
 
+## conclusions
 
-
-
-
+- spin coating results in circular inner region of uniform thickness and outer rim with thicker coating
+- spinning for longer time (60 instead of 30 s) seems to expand the inner region
+- higher variation in thickness across wafers for lower RPM (3000, 4000)
+- place chip designs radially symmetrical on the wafer to increase uniformness
 
 
 
