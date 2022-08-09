@@ -1,0 +1,63 @@
+---
+title: "Electrical Engineering"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Electrical Engineering}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+## Voltage amplifier output measurement
+
+
+```{r setup, message=FALSE}
+library(picoinjector)
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+Read in data:
+
+```{r}
+d <- read_csv("data/boexle_sorter_output.csv", show_col_types = FALSE)
+d
+```
+
+
+
+Plot:
+
+```{r}
+ggplot(d, aes(x = input_vpp, y = output_vpp, color = factor(channel))) + 
+  geom_point(shape = 23) + 
+  geom_smooth(method = "lm", formula = "y ~ x") + 
+  theme_pretty()
+```
+
+
+It seems like variables frequency and channel do not contribute significantly to the output voltage, therefore I am just fitting a single line through all the data points assuming a linear dependency "output voltage ~ input voltage".
+
+
+```{r}
+ggplot(d, aes(x = input_vpp, y = output_vpp)) + 
+  geom_point(shape = 23) + 
+  geom_smooth(method = "lm", formula = "y ~ x", fullrange = TRUE, color = "black", size = 1) + 
+  xlim(c(0, 12.5)) + 
+  labs(title = "Boexle sorter output voltage as function of input voltage",
+       x = "Input voltage peak-to-peak",
+       y = "Output voltage peak-to-peak") + 
+  theme_pretty()
+```
+
+
+

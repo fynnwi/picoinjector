@@ -10,7 +10,7 @@
 plot_heightprofile <- function(heights) {
   p <- ggplot(heights, aes_string(x = "position", y = "height")) +
     geom_line() +
-    labs(x = "Lateral position [µm]",
+    labs(x = "Lateral position [um]",
          y = "Height [nm]") +
     theme_pretty()
   return(p)
@@ -26,9 +26,8 @@ plot_heightprofile <- function(heights) {
 #' @return A ggplot object.
 #' @export
 #'
-#' @importFrom ggplot2 facet_grid
 plot_heightprofile_bywafer <- function(heights) {
   p <- plot_heightprofile(heights) +
-    facet_grid(wafer ~ direction)
+    ggplot2::facet_grid(wafer ~ direction)
   return(p)
 }
