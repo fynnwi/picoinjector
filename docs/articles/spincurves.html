@@ -44,6 +44,7 @@
     <a class="dropdown-item" href="../articles/droplet_volumes.html">Volume Estimates</a>
     <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
     <a class="dropdown-item" href="../articles/hydraulic_resistance.html">Hydraulic resistance</a>
+    <a class="dropdown-item" href="../articles/logfiles.html">Log Files</a>
     <a class="dropdown-item" href="../articles/spincurves.html">SU-8 3035 Spincurve Analysis</a>
   </div>
 </li>
@@ -162,7 +163,7 @@ structure.</li>
 <span class="co">#&gt;     intersect, setdiff, setequal, union</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tibble.tidyverse.org/" class="external-link">tibble</a></span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://readr.tidyverse.org" class="external-link">readr</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://stringr.tidyverse.org" class="external-link">stringr</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringr.tidyverse.org" class="external-link">stringr</a></span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span>
 <span class="co"># library(tidyr)</span></code></pre></div>
 </div>
@@ -203,8 +204,7 @@ dataframe:</p>
 <span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>      3.5  -<span style="color: #BB0000;">1.63</span> 00_job9945_eastwest.csv</span>
 <span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>      4    -<span style="color: #BB0000;">1.88</span> 00_job9945_eastwest.csv</span>
 <span class="co">#&gt; <span style="color: #BCBCBC;">10</span>      4.5  -<span style="color: #BB0000;">2.08</span> 00_job9945_eastwest.csv</span>
-<span class="co">#&gt; <span style="color: #949494;"># … with 2,814,991 more rows</span></span>
-<span class="co">#&gt; <span style="color: #949494;"># ℹ Use `print(n = ...)` to see more rows</span></span></code></pre></div>
+<span class="co">#&gt; <span style="color: #949494;"># … with 2,814,991 more rows</span></span></code></pre></div>
 <p>Add information about spin speed and duration:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># table relating wafer id with RPM</span>
@@ -242,8 +242,7 @@ dataframe:</p>
 <span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>      4    -<span style="color: #BB0000;">1.88</span> 00_job9945_eastwest.csv job9945 eastwe… horizo…  <span style="text-decoration: underline;">3</span>000      30</span>
 <span class="co">#&gt; <span style="color: #BCBCBC;">10</span>      4.5  -<span style="color: #BB0000;">2.08</span> 00_job9945_eastwest.csv job9945 eastwe… horizo…  <span style="text-decoration: underline;">3</span>000      30</span>
 <span class="co">#&gt; <span style="color: #949494;"># … with 2,814,991 more rows, and abbreviated variable names ¹​direction,</span></span>
-<span class="co">#&gt; <span style="color: #949494;">#   ²​orientation, ³​spintime</span></span>
-<span class="co">#&gt; <span style="color: #949494;"># ℹ Use `print(n = ...)` to see more rows</span></span></code></pre></div>
+<span class="co">#&gt; <span style="color: #949494;">#   ²​orientation, ³​spintime</span></span></code></pre></div>
 <p>The raw data looks like this:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">profile</span> <span class="op">&lt;-</span> <span class="va">results</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
@@ -388,7 +387,6 @@ be used to fit a continuous baseline curve.</p>
 <span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>    <span style="text-decoration: underline;">8</span>750. -<span style="color: #BB0000;">310.</span>  </span>
 <span class="co">#&gt; <span style="color: #BCBCBC;">10</span>    <span style="text-decoration: underline;">9</span>750. -<span style="color: #BB0000;">436.</span>  </span>
 <span class="co">#&gt; <span style="color: #949494;"># … with 28 more rows</span></span>
-<span class="co">#&gt; <span style="color: #949494;"># ℹ Use `print(n = ...)` to see more rows</span></span>
 
 <span class="va">profileRescaled</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
   <span class="fu"><a href="../reference/plot_heightprofile.html">plot_heightprofile</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>

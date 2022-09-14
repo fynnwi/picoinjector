@@ -44,6 +44,7 @@
     <a class="dropdown-item" href="../articles/droplet_volumes.html">Volume Estimates</a>
     <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
     <a class="dropdown-item" href="../articles/hydraulic_resistance.html">Hydraulic resistance</a>
+    <a class="dropdown-item" href="../articles/logfiles.html">Log Files</a>
     <a class="dropdown-item" href="../articles/spincurves.html">SU-8 3035 Spincurve Analysis</a>
   </div>
 </li>
@@ -121,7 +122,6 @@ to 1 meter:</p>
 <span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>  0.005 v_tygon 1.01<span style="color: #949494;">e</span><span style="color: #BB0000;">- 9</span></span>
 <span class="co">#&gt; <span style="color: #BCBCBC;">10</span>  0.005 v_ptfe  2.51<span style="color: #949494;">e</span><span style="color: #BB0000;">- 9</span></span>
 <span class="co">#&gt; <span style="color: #949494;"># … with 1,990 more rows</span></span>
-<span class="co">#&gt; <span style="color: #949494;"># ℹ Use `print(n = ...)` to see more rows</span></span>
 
 <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">volumes</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">length</span>, y <span class="op">=</span> <span class="va">volume</span> <span class="op">*</span> <span class="fl">1e9</span>, color <span class="op">=</span> <span class="va">type</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> 

@@ -49,15 +49,23 @@ It seems like variables frequency and channel do not contribute significantly to
 
 
 ```{r}
-ggplot(d, aes(x = input_vpp, y = output_vpp)) + 
+p <- ggplot(d, aes(x = input_vpp, y = output_vpp)) + 
   geom_point(shape = 23) + 
   geom_smooth(method = "lm", formula = "y ~ x", fullrange = TRUE, color = "black", size = 1) + 
   xlim(c(0, 12.5)) + 
-  labs(title = "Boexle sorter output voltage as function of input voltage",
+  labs(title = '"boexle sorter" output voltage as function of input voltage',
        x = "Input voltage peak-to-peak",
        y = "Output voltage peak-to-peak") + 
   theme_pretty()
+p
 ```
 
+Prepare a plot that can be printed on A5:
+
+```{r, fig.width=8.27, fig.height=5.83, eval=FALSE}
+p + 
+  scale_y_continuous(breaks = seq(0, 700, 100), minor_breaks = seq(0, 700, 25)) + 
+  scale_x_continuous(breaks = seq(0, 12, 2), minor_breaks = seq(0, 13), limits = c(0, 13))
+```
 
 

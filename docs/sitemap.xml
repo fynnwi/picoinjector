@@ -19,6 +19,9 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
+    <loc>/articles/logfiles.html</loc>
+  </url>
+  <url>
     <loc>/articles/spincurves.html</loc>
   </url>
   <url>
@@ -29,6 +32,21 @@
   </url>
   <url>
     <loc>/reference/index.html</loc>
+  </url>
+  <url>
+    <loc>/reference/logfile_align_pressure.html</loc>
+  </url>
+  <url>
+    <loc>/reference/logfile_plot_pressure.html</loc>
+  </url>
+  <url>
+    <loc>/reference/logfile_plot_syringepump.html</loc>
+  </url>
+  <url>
+    <loc>/reference/logfile_read_pressure.html</loc>
+  </url>
+  <url>
+    <loc>/reference/logfile_read_syringepump.html</loc>
   </url>
   <url>
     <loc>/reference/pipe.html</loc>

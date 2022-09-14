@@ -1,0 +1,175 @@
+---
+title: "Log Files"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Log Files}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, message=FALSE}
+library(picoinjector)
+library(readr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+```
+
+
+What do I want?
+
+- plot with q_oil, q_emulsion and p_injection on the y-axis, time on the x-axis
+- function to give me pressure and flowrates for a given time
+
+Challenge:
+
+- align pressure and syringe pump profiles such that the timesteps are the same
+
+
+
+Overall workflow:
+
+1. Read in the log files
+2. Find values of elapsed time of both syringe and pressure log in order to align them
+3. Plot
+
+
+### syringe pump
+
+Read in data:
+
+
+```{r}
+syringe <- logfile_read_syringepump("data/logfiles/syringe_pump_log_20220805_150634.csv")
+syringe
+```
+
+
+```{r}
+logfile_plot_syringepump(syringe)
+```
+
+```{r}
+logfile_plot_syringepump(syringe) +
+  xlim(c(81.5, 82))
+```
+
+Time when q2 was set to zero:
+
+```{r}
+syringe %>% 
+  filter(channel == "q2",
+         elapsed_time > 4904 & elapsed_time < 4905)
+```
+
+
+
+
+
+
+
+### pressure controller
+
+A drawback of the pressure controller log files is, that the system time is not stored.
+Therefore, we need to align the pressure profile with the syringe pump profile in order to get that information.
+
+
+
+```{r}
+pressure <- logfile_read_pressure("data/logfiles/pressure_log.txt")
+pressure
+```
+
+```{r}
+logfile_plot_pressure(pressure)
+```
+
+Find time when p2 was set to zero:
+
+```{r}
+pressure %>% 
+  filter(channel == "p2",
+         value == "target",
+         elapsed_time > 4861.5 & elapsed_time < 4862.5)
+```
+
+
+
+### align profiles
+
+What are the times where pressure and syringe pump logs should be aligned?
+
+```{r}
+tPressure <- 4862.1
+tSyringe <- 4904.6
+```
+
+Align pressure log to syringe pump log:
+
+```{r}
+pressureAligned <- logfile_align_pressure(pressure, syringe, tPressure, tSyringe)
+pressureAligned
+```
+
+
+
+### plot
+
+Remove unused channels:
+
+```{r}
+syringe <- syringe %>% 
+  dplyr::filter(channel != "q3")
+pressureAligned <- pressureAligned %>% 
+  dplyr::filter(channel == "p2")
+```
+
+
+
+```{r}
+# find out by how much the second y-axis has to be scaled:
+r <- max(syringe$flowrate) / max(pressureAligned$mbar)
+```
+
+Merge pressure and syringe dataframes:
+
+```{r}
+df1 <- syringe %>% 
+  dplyr::rename(value = flowrate) %>% 
+  dplyr::mutate(type = "syringe pump")
+
+df2 <- pressureAligned %>% 
+  dplyr::filter(value == "target") %>% 
+  dplyr::select(!value) %>% 
+  dplyr::rename(value = mbar) %>% 
+  dplyr::mutate(type = "pressure controller")
+
+# scale pressure
+df2 <- df2 %>% 
+  dplyr::mutate(value = value * r)
+
+
+df <- dplyr::bind_rows(df1, df2)
+```
+
+
+```{r}
+ggplot(df, aes(x = elapsed_time / 60, y  = value, color = channel, linetype = type)) + 
+  geom_line() + 
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./r, name = "Pressure [mbar]")) + 
+  theme_pretty() + 
+  labs(y = "Flowrate [ul/h]",
+       x = "Elapsed time [min]",
+       linetype = "Instrument",
+       color = "Channel")
+```
+
+
+

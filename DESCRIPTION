@@ -16,8 +16,10 @@ VignetteBuilder: knitr
 Imports: 
     dplyr,
     ggplot2,
+    lubridate,
     magrittr,
     readr,
+    rlang,
     stringr,
     tibble,
     tidyr
