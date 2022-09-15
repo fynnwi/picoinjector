@@ -74,12 +74,20 @@
 
     
     
+<p>During a picoinjection or droplet making experiment, it can be
+important to know the fluid flow parameters at any given time, e.g. in
+order to link them to an image that was taken at a specific time. Both,
+the OB1 pressure controller and the Cetoni syringe pump allow to record
+the history of parameters, i.e. pressure or flowrate, over time and
+store them in a log file.</p>
+<p>In this vignette, I will format and analyse those log files in order
+to show them in a single plot.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">picoinjector</span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://readr.tidyverse.org" class="external-link">readr</a></span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lubridate.tidyverse.org" class="external-link">lubridate</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></code></pre></div>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span>
+<span class="co"># show fractional seconds with three digits</span>
+<span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>digits.secs <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></code></pre></div>
 <p>What do I want?</p>
 <ul>
 <li>plot with q_oil, q_emulsion and p_injection on the y-axis, time on
@@ -101,49 +109,71 @@ order to align them</li>
 <div class="section level3">
 <h3 id="syringe-pump">syringe pump<a class="anchor" aria-label="anchor" href="#syringe-pump"></a>
 </h3>
-<p>Read in data:</p>
+<p>The Cetoni syringe pump log file can be loaded using the convenience
+function <code>logfile_read_syringepump</code>. This reads the CSV file
+and formats the columns a little bit.</p>
+<p>(This function works only for a particular configuration of the log
+file in the Cetoni Elements software.)</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">syringe</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/logfile_read_syringepump.html">logfile_read_syringepump</a></span><span class="op">(</span><span class="st">"data/logfiles/syringe_pump_log_20220805_150634.csv"</span><span class="op">)</span>
 <span class="va">syringe</span>
 <span class="co">#&gt; <span style="color: #949494;"># A tibble: 149,607 × 4</span></span>
-<span class="co">#&gt;    elapsed_time timestamp           channel flowrate</span>
-<span class="co">#&gt;           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>          0   2022-08-05 <span style="color: #949494;">15:06:34</span> q1            10</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>          0   2022-08-05 <span style="color: #949494;">15:06:34</span> q2            10</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>          0   2022-08-05 <span style="color: #949494;">15:06:34</span> q3             0</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>          0.1 2022-08-05 <span style="color: #949494;">15:06:34</span> q1            10</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>          0.1 2022-08-05 <span style="color: #949494;">15:06:34</span> q2            10</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>          0.1 2022-08-05 <span style="color: #949494;">15:06:34</span> q3             0</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>          0.2 2022-08-05 <span style="color: #949494;">15:06:34</span> q1            10</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>          0.2 2022-08-05 <span style="color: #949494;">15:06:34</span> q2            10</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>          0.2 2022-08-05 <span style="color: #949494;">15:06:34</span> q3             0</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">10</span>          0.3 2022-08-05 <span style="color: #949494;">15:06:34</span> q1            10</span>
+<span class="co">#&gt;    elapsed_time timestamp               channel flowrate</span>
+<span class="co">#&gt;           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>          0   2022-08-05 <span style="color: #949494;">15:06:34.569</span> q1            10</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>          0   2022-08-05 <span style="color: #949494;">15:06:34.569</span> q2            10</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>          0   2022-08-05 <span style="color: #949494;">15:06:34.569</span> q3             0</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>          0.1 2022-08-05 <span style="color: #949494;">15:06:34.669</span> q1            10</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>          0.1 2022-08-05 <span style="color: #949494;">15:06:34.669</span> q2            10</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>          0.1 2022-08-05 <span style="color: #949494;">15:06:34.669</span> q3             0</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>          0.2 2022-08-05 <span style="color: #949494;">15:06:34.769</span> q1            10</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>          0.2 2022-08-05 <span style="color: #949494;">15:06:34.769</span> q2            10</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>          0.2 2022-08-05 <span style="color: #949494;">15:06:34.769</span> q3             0</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">10</span>          0.3 2022-08-05 <span style="color: #949494;">15:06:34.868</span> q1            10</span>
 <span class="co">#&gt; <span style="color: #949494;"># … with 149,597 more rows</span></span></code></pre></div>
+<p>It can be seen that every row contains an absolute time stamp which
+will allow us to associate the flowrate with images data acquired on the
+microscope.</p>
+<p>As will be shown later, the pressure controller log file <em>does
+not</em> contain absolute timestamps, just a column for the elapsed
+time. However, by aligning flowrate and pressure profiles, the absolute
+time stamp can also be inferred for the pressure log. To that end, one
+has to include an alignment mark during the experiment, e.g. by setting
+both, pressure and syringe pump to a specific value at the exact same
+time. By inspecting the resulting profiles, one can identify the
+alignment mark and shift the pressure profile so that both alignment
+marks conincide with the same time.</p>
+<p>An overview graph of the syringe pump flowrate can be plotted using
+<code>logfile_plot_syringepump</code>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/logfile_plot_syringepump.html">logfile_plot_syringepump</a></span><span class="op">(</span><span class="va">syringe</span><span class="op">)</span></code></pre></div>
 <p><img src="logfiles_files/figure-html/unnamed-chunk-3-1.png" width="700"></p>
+<p>Here, the alignment mark is at the end of the experiment, around
+minute 81, where flowrate on channel 2 and pressure on channel 2 were
+set to zero. Zoom on the x-axis to find the precise time:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/logfile_plot_syringepump.html">logfile_plot_syringepump</a></span><span class="op">(</span><span class="va">syringe</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">81.5</span>, <span class="fl">82</span><span class="op">)</span><span class="op">)</span>
 <span class="co">#&gt; Warning: Removed 148704 row(s) containing missing values (geom_path).</span></code></pre></div>
 <p><img src="logfiles_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
-<p>Time when q2 was set to zero:</p>
+<p>Investigate the logfile rows in order to find the exact time when q2
+was set to zero:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">syringe</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> 
   <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">channel</span> <span class="op">==</span> <span class="st">"q2"</span>,
          <span class="va">elapsed_time</span> <span class="op">&gt;</span> <span class="fl">4904</span> <span class="op">&amp;</span> <span class="va">elapsed_time</span> <span class="op">&lt;</span> <span class="fl">4905</span><span class="op">)</span>
 <span class="co">#&gt; <span style="color: #949494;"># A tibble: 9 × 4</span></span>
-<span class="co">#&gt;   elapsed_time timestamp           channel flowrate</span>
-<span class="co">#&gt;          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">1</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17</span> q2           300</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">2</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17</span> q2           300</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">3</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17</span> q2           300</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">4</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17</span> q2           300</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">5</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:18</span> q2           300</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">6</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18</span> q2             0</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">7</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18</span> q2             0</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">8</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18</span> q2             0</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">9</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18</span> q2             0</span></code></pre></div>
+<span class="co">#&gt;   elapsed_time timestamp               channel flowrate</span>
+<span class="co">#&gt;          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">1</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17.611</span> q2           300</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">2</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17.711</span> q2           300</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">3</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17.812</span> q2           300</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">4</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:17.911</span> q2           300</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">5</span>        <span style="text-decoration: underline;">4</span>904. 2022-08-05 <span style="color: #949494;">16:28:18.012</span> q2           300</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">6</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18.111</span> q2             0</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">7</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18.211</span> q2             0</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">8</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18.312</span> q2             0</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">9</span>        <span style="text-decoration: underline;">4</span>905. 2022-08-05 <span style="color: #949494;">16:28:18.411</span> q2             0</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="pressure-controller">pressure controller<a class="anchor" aria-label="anchor" href="#pressure-controller"></a>
@@ -203,18 +233,18 @@ aligned?</p>
 <code class="sourceCode R"><span class="va">pressureAligned</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/logfile_align_pressure.html">logfile_align_pressure</a></span><span class="op">(</span><span class="va">pressure</span>, <span class="va">syringe</span>, <span class="va">tPressure</span>, <span class="va">tSyringe</span><span class="op">)</span>
 <span class="va">pressureAligned</span>
 <span class="co">#&gt; <span style="color: #949494;"># A tibble: 394,856 × 5</span></span>
-<span class="co">#&gt;    elapsed_time timestamp           channel value    mbar</span>
-<span class="co">#&gt;           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p1      target  0    </span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p1      read    0.612</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p2      target 50    </span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p2      read   50.0  </span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p3      target  0    </span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p3      read    0.970</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p4      target  0    </span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17</span> p4      read    0.833</span>
-<span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>         42.6 2022-08-05 <span style="color: #949494;">15:07:17</span> p1      target  0    </span>
-<span class="co">#&gt; <span style="color: #BCBCBC;">10</span>         42.6 2022-08-05 <span style="color: #949494;">15:07:17</span> p1      read    0.605</span>
+<span class="co">#&gt;    elapsed_time timestamp               channel value    mbar</span>
+<span class="co">#&gt;           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p1      target  0    </span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p1      read    0.612</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p2      target 50    </span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p2      read   50.0  </span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p3      target  0    </span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p3      read    0.970</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p4      target  0    </span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>         42.5 2022-08-05 <span style="color: #949494;">15:07:17.069</span> p4      read    0.833</span>
+<span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>         42.6 2022-08-05 <span style="color: #949494;">15:07:17.168</span> p1      target  0    </span>
+<span class="co">#&gt; <span style="color: #BCBCBC;">10</span>         42.6 2022-08-05 <span style="color: #949494;">15:07:17.168</span> p1      read    0.605</span>
 <span class="co">#&gt; <span style="color: #949494;"># … with 394,846 more rows</span></span></code></pre></div>
 </div>
 <div class="section level3">

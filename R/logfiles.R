@@ -65,8 +65,9 @@ logfile_read_syringepump <- function(filename) {
 #' @export
 #'
 #' @importFrom ggplot2 ggplot aes geom_line labs
+#' @importFrom rlang .data
 logfile_plot_syringepump <- function(syringepumpLog) {
-  ggplot(syringepumpLog, aes(x = elapsed_time/60, y = flowrate, color = channel)) +
+  ggplot(syringepumpLog, aes(x = .data$elapsed_time/60, y = .data$flowrate, color = .data$channel)) +
     geom_line() +
     theme_pretty() +
     labs(x = "Elapsed time [min]",
@@ -83,8 +84,9 @@ logfile_plot_syringepump <- function(syringepumpLog) {
 #' @export
 #'
 #' @importFrom ggplot2 ggplot aes geom_line labs
+#' @importFrom rlang .data
 logfile_plot_pressure <- function(pressureLog) {
-  ggplot(pressureLog, aes(x = elapsed_time/60, y = mbar, color = channel, linetype = value)) +
+  ggplot(pressureLog, aes(x = .data$elapsed_time/60, y = .data$mbar, color = .data$channel, linetype = .data$value)) +
     geom_line() +
     theme_pretty() +
     labs(x = "Elapsed time [min]",

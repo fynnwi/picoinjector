@@ -14,12 +14,19 @@ knitr::opts_chunk$set(
 )
 ```
 
+
+During a picoinjection or droplet making experiment, it can be important to know the fluid flow parameters at any given time, e.g. in order to link them to an image that was taken at a specific time.
+Both, the OB1 pressure controller and the Cetoni syringe pump allow to record the history of parameters, i.e. pressure or flowrate, over time and store them in a log file.
+
+In this vignette, I will format and analyse those log files in order to show them in a single plot.
+
+
 ```{r setup, message=FALSE}
 library(picoinjector)
-library(readr)
 library(dplyr)
-library(lubridate)
 library(ggplot2)
+# show fractional seconds with three digits
+op <- options(digits.secs = 3)
 ```
 
 
@@ -43,7 +50,10 @@ Overall workflow:
 
 ### syringe pump
 
-Read in data:
+The Cetoni syringe pump log file can be loaded using the convenience function `logfile_read_syringepump`.
+This reads the CSV file and formats the columns a little bit.
+
+(This function works only for a particular configuration of the log file in the Cetoni Elements software.)
 
 
 ```{r}
@@ -51,17 +61,28 @@ syringe <- logfile_read_syringepump("data/logfiles/syringe_pump_log_20220805_150
 syringe
 ```
 
+It can be seen that every row contains an absolute time stamp which will allow us to associate the flowrate with images data acquired on the microscope.
+
+As will be shown later, the pressure controller log file _does not_ contain absolute timestamps, just a column for the elapsed time. 
+However, by aligning flowrate and pressure profiles, the absolute time stamp can also be inferred for the pressure log.
+To that end, one has to include an alignment mark during the experiment, e.g. by setting both, pressure and syringe pump to a specific value at the exact same time.
+By inspecting the resulting profiles, one can identify the alignment mark and shift the pressure profile so that both alignment marks conincide with the same time.
+
+An overview graph of the syringe pump flowrate can be plotted using `logfile_plot_syringepump`.
 
 ```{r}
 logfile_plot_syringepump(syringe)
 ```
+
+Here, the alignment mark is at the end of the experiment, around minute 81, where flowrate on channel 2 and pressure on channel 2 were set to zero.
+Zoom on the x-axis to find the precise time:
 
 ```{r}
 logfile_plot_syringepump(syringe) +
   xlim(c(81.5, 82))
 ```
 
-Time when q2 was set to zero:
+Investigate the logfile rows in order to find the exact time when q2 was set to zero:
 
 ```{r}
 syringe %>% 
