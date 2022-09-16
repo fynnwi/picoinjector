@@ -1,0 +1,72 @@
+---
+title: "FADS Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{FADS Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(picoinjector)
+library(dplyr)
+library(readr)
+library(ggplot2)
+```
+
+
+
+Load csv file:
+
+```{r}
+fads <- read_tsv("data/fads/220916/pi30v4_0.txt", skip = 7, col_names = c("time", "blue", "green", "red", "width", "spacing"), show_col_types = FALSE, locale = locale(decimal_mark = ","))
+fads
+```
+
+
+
+```{r}
+ggplot(fads, aes(x = green, y = red)) + 
+  geom_hline(yintercept = 0) + 
+  geom_vline(xintercept = 0) + 
+  geom_bin2d(bins = 100) + 
+  scale_fill_continuous(type = "viridis") + 
+  theme_pretty()
+```
+
+
+
+
+```{r}
+ggplot(fads, aes(x = green, y = red)) + 
+  geom_hex(bins = 100) + 
+  scale_fill_continuous(type = "viridis") + 
+  theme_pretty()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

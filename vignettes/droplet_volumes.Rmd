@@ -18,6 +18,7 @@ knitr::opts_chunk$set(
 library(picoinjector)
 library(dplyr)
 library(ggplot2)
+library(tidyr)
 ```
 
 In this vignette, calculations to estimate volumes and quantities relevant for the droplet making and picoinjection workflow are documented.
@@ -39,8 +40,11 @@ getCylinderVolume <- function(radius, height) {
 
 Tubing options
 
-- Tygon: ID = 0.020 in = 0.508 mm, OD = 0.060 in = 1.524 mm
-- Bola PTFE: ID = 0.8 mm, OD = 1.6 mm
+
+| type   | inner diameter      | outer diameter      |
+|--------|---------------------|---------------------|
+| Typgon | 0.508 mm (0.020 in) | 1.524 mm (0.060 in) |
+| PTFE   | 0.8 mm              | 1.6 mm              |
 
 ```{r}
 # everything in m
@@ -68,6 +72,27 @@ ggplot(volumes, aes(x = length, y = volume * 1e9, color = type)) +
   theme_pretty()
 ```
 
+
+
+Convert flowrate unit µl/h into tubing cm/h:
+
+```{r}
+flowrates <- tibble::tibble("ul_h" = seq(0, 100)) %>% 
+  dplyr::mutate("Tygon" = ul_h / (getCylinderVolume(radiusTygon, 0.01) * 1e9), 
+                "PTFE" = ul_h / (getCylinderVolume(radiusPTFE, 0.01) * 1e9)) %>% 
+  tidyr::pivot_longer(!ul_h, names_to = "tubing_type", values_to = "cm_h")
+```
+
+
+```{r}
+ggplot(flowrates, aes(x = ul_h, y = cm_h, color = tubing_type)) + 
+  geom_line() + 
+  scale_color_viridis_d() + 
+  theme_pretty() + 
+  labs(x = "Flowrate [ul/h]",
+       y = "Tubing-length flowrate [cm/h]",
+       color = "Tubing type")
+```
 
 
 
