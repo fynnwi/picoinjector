@@ -22,42 +22,55 @@ library(ggplot2)
 ```
 
 
-
-Load csv file:
+Using the LabVIEW software, a TSV file can be recorded during in experiment, where every row corresponds to a droplet that is recognized by the sorter.
+For a droplet flowing across the focus spot to be recognized, the signal captured by the PMT has to exceed a defined threshold in terms of amplitude and duration.
+This way, droplets can be distinguished from the background signal.
 
 ```{r}
-fads <- read_tsv("data/fads/220916/pi30v4_0.txt", skip = 7, col_names = c("time", "blue", "green", "red", "width", "spacing"), show_col_types = FALSE, locale = locale(decimal_mark = ","))
+fads <- fads_read_tsv("data/fads/220916/pi30v4_1.txt")
 fads
 ```
 
-
+This function allows to plot the red against the green signal:
 
 ```{r}
-ggplot(fads, aes(x = green, y = red)) + 
-  geom_hline(yintercept = 0) + 
-  geom_vline(xintercept = 0) + 
-  geom_bin2d(bins = 100) + 
-  scale_fill_continuous(type = "viridis") + 
-  theme_pretty()
+fads_plot_red_green(fads)
 ```
 
 
-
+Same plot, but with hexagonal glyphs:
 
 ```{r}
-ggplot(fads, aes(x = green, y = red)) + 
-  geom_hex(bins = 100) + 
-  scale_fill_continuous(type = "viridis") + 
-  theme_pretty()
+fads_plot_red_green_hex(fads)
 ```
 
 
+Lets look at the signal width as well:
+
+```{r}
+fads_plot_width(fads)
+```
 
 
+Plot width vs. time:
+
+```{r}
+fads_plot_width_time(fads)
+```
 
 
+Plot signal vs. time:
+
+```{r}
+fads_plot_signal_time(fads)
+```
 
 
+Plot droplet frequency over time:
+
+```{r}
+fads_plot_frequency(fads)
+```
 
 
 
