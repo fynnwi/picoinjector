@@ -16,8 +16,8 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(picoinjector)
-library(dplyr)
-library(readr)
+  library(dplyr)
+  library(readr)
 library(ggplot2)
 ```
 
@@ -27,42 +27,52 @@ For a droplet flowing across the focus spot to be recognized, the signal capture
 This way, droplets can be distinguished from the background signal.
 
 ```{r}
-fads <- fads_read_tsv("data/fads/220916/pi30v4_1.txt")
+fads <- fads_read_tsv("data/fads/220916/pi30v4_5.txt")
 fads
 ```
 
 This function allows to plot the red against the green signal:
 
 ```{r}
-fads_plot_red_green(fads)
+fads %>% 
+  fads_remove_outliers() %>%
+  fads_plot_red_green()
 ```
 
 
 Same plot, but with hexagonal glyphs:
 
 ```{r}
-fads_plot_red_green_hex(fads)
+fads %>% 
+  fads_remove_outliers() %>%
+  fads_plot_red_green_hex()
 ```
 
 
 Lets look at the signal width as well:
 
 ```{r}
-fads_plot_width(fads)
+fads %>% 
+  fads_remove_outliers() %>% 
+  fads_plot_width()
 ```
 
 
 Plot width vs. time:
 
 ```{r}
-fads_plot_width_time(fads)
+fads %>% 
+  fads_remove_outliers() %>% 
+  fads_plot_width_time()
 ```
 
 
 Plot signal vs. time:
 
 ```{r}
-fads_plot_signal_time(fads)
+fads %>% 
+  fads_remove_outliers() %>% 
+  fads_plot_signal_time()
 ```
 
 

@@ -34,6 +34,18 @@
     <loc>/index.html</loc>
   </url>
   <url>
+    <loc>/reference/fads_format_time_minutes.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fads_format_time_seconds.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fads_get_outliers.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fads_marker_opacity.html</loc>
+  </url>
+  <url>
     <loc>/reference/fads_plot_frequency.html</loc>
   </url>
   <url>
@@ -53,6 +65,9 @@
   </url>
   <url>
     <loc>/reference/fads_read_tsv.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fads_remove_outliers.html</loc>
   </url>
   <url>
     <loc>/reference/index.html</loc>
