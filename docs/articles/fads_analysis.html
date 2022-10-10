@@ -41,7 +41,7 @@
 <li class="active nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/droplet_volumes.html">Volume Estimates</a>
+    <a class="dropdown-item" href="../articles/droplet_volumes.html">Volumes and Concentrations</a>
     <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
     <a class="dropdown-item" href="../articles/fads_analysis.html">FADS Analysis</a>
     <a class="dropdown-item" href="../articles/hydraulic_resistance.html">Hydraulic resistance</a>
@@ -121,7 +121,8 @@ distinguished from the background signal.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fads</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu"><a href="../reference/fads_remove_outliers.html">fads_remove_outliers</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="../reference/fads_plot_red_green_hex.html">fads_plot_red_green_hex</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="../reference/fads_plot_red_green_hex.html">fads_plot_red_green_hex</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Computation failed in `stat_binhex()`:</span></span></code></pre></div>
 <p><img src="fads_analysis_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
 <p>Lets look at the signal width as well:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">

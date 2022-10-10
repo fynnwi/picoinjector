@@ -1,8 +1,8 @@
 ---
-title: "Volume Estimates"
+title: "Volumes and Concentrations"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Volume Estimates}
+  %\VignetteIndexEntry{Volumes and Concentrations}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -21,8 +21,9 @@ library(ggplot2)
 library(tidyr)
 ```
 
-In this vignette, calculations to estimate volumes and quantities relevant for the droplet making and picoinjection workflow are documented.
+In this vignette, calculations to estimate volumes, concentrations and other quantities relevant for the droplet making and picoinjection workflow are documented.
 
+## Volumes
 
 ### Tubing
 
@@ -91,7 +92,8 @@ ggplot(flowrates, aes(x = ul_h, y = cm_h, color = tubing_type)) +
   theme_pretty() + 
   labs(x = "Flowrate [ul/h]",
        y = "Tubing-length flowrate [cm/h]",
-       color = "Tubing type")
+       color = "Tubing type",
+       title = "Tubing volume as a function of tubing length")
 ```
 
 
@@ -169,6 +171,50 @@ volumes %>%
        y = "Number of close-packed spheres [million]",
        color = "Tubing type") + 
   theme_pretty()
+```
+
+
+
+
+
+
+## Concentrations
+
+### Single-cell encapsulation
+
+From Collins et al. 2015:
+
+- when number of encapsulated cells is large and size is significantly smaller than the droplet (e.g. bacterial cells), the number of cells per droplet can be representative of the volumetric concentration of cells
+  - number of cells can be approximated by a Gaussian distribution
+  - not the case for single-cell analysis
+- if cells are distributed randomly in the aqueous phase, the quantity of cells per droplet is determined by Poisson statistics
+- probabilistically estimate the proportion of single cells that are encapsulated according to the Poisson distribution, which is applicable in the case where the average cell arrival rate is known and the arrival of individual cells occurs independently from other cells
+
+
+
+Poisson distribution:
+
+$$p(k, \lambda) = \frac{\lambda^k e^{-k}}{k!}$$
+
+- $k$ number of particles in a droplet
+- $\lambda$ average number of cells per droplet volume
+
+
+Plot the Poisson distribution for different $\lambda$:
+
+```{r}
+tidyr::crossing("k" = seq(0,5),
+                "lambda" = c(0.05, 0.25, 0.5, 1, 20)) %>% 
+  dplyr::mutate("p" = dpois(k, lambda)) %>% 
+  ggplot(aes(x = k, y = p)) + 
+  geom_line(aes(color = factor(lambda)), linetype = "dashed") + 
+  geom_point(aes(fill = factor(lambda)), shape = 22) + 
+  theme_pretty() + 
+  labs(title = "Poisson distribution for different values of lambda",
+       y = "p(k, lambda)",
+       x = "k",
+       color = "lambda",
+       fill = "lambda")
 ```
 
 
