@@ -22,7 +22,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
     
 
-    <nav class="navbar fixed-top navbar-light navbar-expand-lg bg-light"><div class="container">
+    <nav class="navbar fixed-top navbar-dark navbar-expand-lg bg-primary"><div class="container">
     
     <a class="navbar-brand me-2" href="../index.html">picoinjector</a>
 
@@ -44,7 +44,7 @@
     <a class="dropdown-item" href="../articles/droplet_volumes.html">Volumes and Concentrations</a>
     <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
     <a class="dropdown-item" href="../articles/fads_analysis.html">FADS Analysis</a>
-    <a class="dropdown-item" href="../articles/hydraulic_resistance.html">Hydraulic resistance</a>
+    <a class="dropdown-item" href="../articles/hydraulic_resistance.html">Fluid Flow</a>
     <a class="dropdown-item" href="../articles/logfiles.html">Log Files</a>
     <a class="dropdown-item" href="../articles/spincurves.html">SU-8 3035 Spincurve Analysis</a>
   </div>
@@ -84,11 +84,8 @@
 and other quantities relevant for the droplet making and picoinjection
 workflow are documented.</p>
 <div class="section level2">
-<h2 id="volumes">Volumes<a class="anchor" aria-label="anchor" href="#volumes"></a>
+<h2 id="tubing">Tubing<a class="anchor" aria-label="anchor" href="#tubing"></a>
 </h2>
-<div class="section level3">
-<h3 id="tubing">Tubing<a class="anchor" aria-label="anchor" href="#tubing"></a>
-</h3>
 <p>Volume of a cylinder with radius <span class="math inline">\(r\)</span> and height <span class="math inline">\(h\)</span>:</p>
 <p><span class="math display">\[V = \pi r^2 h\]</span></p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
@@ -104,7 +101,7 @@ workflow are documented.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Typgon</td>
+<td>Tygon</td>
 <td>0.508 mm (0.020 in)</td>
 <td>1.524 mm (0.060 in)</td>
 </tr>
@@ -112,6 +109,11 @@ workflow are documented.</p>
 <td>PTFE</td>
 <td>0.8 mm</td>
 <td>1.6 mm</td>
+</tr>
+<tr class="odd">
+<td>PTFE</td>
+<td>0.3 mm</td>
+<td>0.78 mm</td>
 </tr>
 </tbody>
 </table>
@@ -148,9 +150,10 @@ to 1 meter:</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_d</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PTFE"</span>, <span class="st">"Tygon"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Tubing length [m]"</span>,</span>
 <span>       y <span class="op">=</span> <span class="st">"Tubing volume [µL]"</span>,</span>
-<span>       color <span class="op">=</span> <span class="st">"Tubing type"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>       color <span class="op">=</span> <span class="st">"Tubing type"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"PTFE and Tygon tubing volume"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="droplet_volumes_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
+<p><img src="droplet_volumes_files/figure-html/PTFE_and_Tygon_tubing_volume-1.png" width="700"></p>
 <p>Convert flowrate unit µl/h into tubing cm/h:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">flowrates</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span><span class="st">"ul_h"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
@@ -165,12 +168,12 @@ to 1 meter:</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Flowrate [ul/h]"</span>,</span>
 <span>       y <span class="op">=</span> <span class="st">"Tubing-length flowrate [cm/h]"</span>,</span>
 <span>       color <span class="op">=</span> <span class="st">"Tubing type"</span>,</span>
-<span>       title <span class="op">=</span> <span class="st">"Tubing volume as a function of tubing length"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="droplet_volumes_files/figure-html/unnamed-chunk-6-1.png" width="700"></p>
+<span>       title <span class="op">=</span> <span class="st">"Flowrates in PTFE and Tygon tubing"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="droplet_volumes_files/figure-html/Flowrates_in_PTFE_and_Tygon_tubing-1.png" width="700"></p>
 </div>
-<div class="section level3">
-<h3 id="droplets">Droplets<a class="anchor" aria-label="anchor" href="#droplets"></a>
-</h3>
+<div class="section level2">
+<h2 id="droplets">Droplets<a class="anchor" aria-label="anchor" href="#droplets"></a>
+</h2>
 <p>How much liquid is contained in a droplet of diameter <span class="math inline">\(d\)</span>?</p>
 <p>Volume of a sphere: <span class="math display">\[V = \frac{4}{3} \pi
 r^3\]</span></p>
@@ -185,14 +188,15 @@ r^3\]</span></p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">diameter</span><span class="op">*</span><span class="fl">1e6</span>, y <span class="op">=</span> <span class="va">volume</span> <span class="op">*</span> <span class="fl">1e15</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="co"># y-axis in picoliters</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Droplet diameter [µm]"</span>,</span>
-<span>       y <span class="op">=</span> <span class="st">"Droplet volume [pL]"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>       y <span class="op">=</span> <span class="st">"Droplet volume [pL]"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"Droplet volume vs. diameter"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="droplet_volumes_files/figure-html/unnamed-chunk-8-1.png" width="700"></p>
+<p><img src="droplet_volumes_files/figure-html/Droplet_volume_vs_diameter-1.png" width="700"></p>
 <p>For droplet sizes up to 40 µm:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/last_plot.html" class="external-link">last_plot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_cartesian.html" class="external-link">coord_cartesian</a></span><span class="op">(</span>xlim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">40</span><span class="op">)</span>, ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">35</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="droplet_volumes_files/figure-html/unnamed-chunk-9-1.png" width="700"></p>
+<p><img src="droplet_volumes_files/figure-html/Droplet_volume_vs_diameter_2-1.png" width="700"></p>
 <p>How many droplets are there in x mm of Tygon/PTFE tubing?</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">radiusDroplet</span> <span class="op">&lt;-</span> <span class="fl">15e-6</span> <span class="co"># 30 micron droplets</span></span></code></pre></div>
@@ -219,18 +223,48 @@ of tubing, assuming close-packing of equal spheres.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_colour_viridis_d</a></span><span class="op">(</span>labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"PTFE"</span>, <span class="st">"Tygon"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Tubing length [m]"</span>,</span>
 <span>       y <span class="op">=</span> <span class="st">"Number of close-packed spheres [million]"</span>,</span>
-<span>       color <span class="op">=</span> <span class="st">"Tubing type"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>       color <span class="op">=</span> <span class="st">"Tubing type"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"Number of droplets vs. tubing length"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="droplet_volumes_files/figure-html/unnamed-chunk-12-1.png" width="700"></p>
-</div>
+<p><img src="droplet_volumes_files/figure-html/Number_of_droplets_vs._tubing_length-1.png" width="700"></p>
 </div>
 <div class="section level2">
-<h2 id="concentrations">Concentrations<a class="anchor" aria-label="anchor" href="#concentrations"></a>
+<h2 id="cells">Cells<a class="anchor" aria-label="anchor" href="#cells"></a>
 </h2>
-<div class="section level3">
-<h3 id="single-cell-encapsulation">Single-cell encapsulation<a class="anchor" aria-label="anchor" href="#single-cell-encapsulation"></a>
-</h3>
-<p>From Collins et al. 2015:</p>
+<p>How does the volume of a cell compare to that of a droplet?</p>
+<p>Dimensions of a typical <em>E.coli</em> cell: - diameter = 1 µm -
+length = 2 µm - volume = 1.3 µm^3</p>
+<p>Neglecting the packing, plot how many <em>E.coli</em> cells
+theoretically fit in one droplet:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">vEcoli</span> <span class="op">&lt;-</span> <span class="fl">1.3e-18</span></span>
+<span><span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span><span class="st">"diameter"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">40</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e-6</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> <span class="co"># 10-200 µm droplets</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"volume"</span> <span class="op">=</span> <span class="fu">getSphereVolume</span><span class="op">(</span><span class="va">diameter</span><span class="op">/</span><span class="fl">2</span><span class="op">)</span>,</span>
+<span>                <span class="st">"n_cells"</span> <span class="op">=</span> <span class="va">volume</span><span class="op">/</span><span class="va">vEcoli</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">diameter</span><span class="op">*</span><span class="fl">1e6</span>, y <span class="op">=</span> <span class="va">n_cells</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="co"># y-axis in picoliters</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Droplet diameter [µm]"</span>,</span>
+<span>       y <span class="op">=</span> <span class="st">"Number of cells equivalent to droplet volume"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"Number of E.coli cells equivalent to droplet volume vs. droplet diameter"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="droplet_volumes_files/figure-html/Number_of_Ecoli_cells_equivalent_to_droplet_volume_vs_droplet_diameter-1.png" width="700"></p>
+<p>How many mCherry molecules are there in one bacterium, and what is
+the mCherry concentration in the droplet after cell lysis?</p>
+<p>The motivation for this question is the following: In the end, we
+want to capture those droplets that contained a phage that successfully
+managed to kill the bacteria. While a droplet containing an intact cell
+causes a narrow signal of high magnitude after excitation by the laser,
+a droplet whose cells were lysed should result in a broader,
+low-intensity signal, since its volumetric concentration of fluorescent
+protein is much smaller. However, it is not clear, whether this low
+signal can be distinguished from the background noise that is present at
+any given time.</p>
+</div>
+<div class="section level2">
+<h2 id="poisson-statistics">Poisson statistics<a class="anchor" aria-label="anchor" href="#poisson-statistics"></a>
+</h2>
+<p>From <span class="citation">(Collins et al. 2015)</span> about
+single-cell encapsulation:</p>
 <ul>
 <li>when number of encapsulated cells is large and size is significantly
 smaller than the droplet (e.g. bacterial cells), the number of cells per
@@ -259,9 +293,9 @@ droplet</li>
 per droplet volume</li>
 </ul>
 <p>Plot the Poisson distribution for different <span class="math inline">\(\lambda\)</span>:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/expand.html" class="external-link">crossing</a></span><span class="op">(</span><span class="st">"k"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">5</span><span class="op">)</span>,</span>
-<span>                <span class="st">"lambda"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">20</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/expand.html" class="external-link">crossing</a></span><span class="op">(</span><span class="st">"k"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">10</span><span class="op">)</span>,</span>
+<span>                <span class="st">"lambda"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">20</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"p"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">dpois</a></span><span class="op">(</span><span class="va">k</span>, <span class="va">lambda</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">k</span>, y <span class="op">=</span> <span class="va">p</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">lambda</span><span class="op">)</span><span class="op">)</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span> </span>
@@ -272,7 +306,18 @@ per droplet volume</li>
 <span>       x <span class="op">=</span> <span class="st">"k"</span>,</span>
 <span>       color <span class="op">=</span> <span class="st">"lambda"</span>,</span>
 <span>       fill <span class="op">=</span> <span class="st">"lambda"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="droplet_volumes_files/figure-html/unnamed-chunk-13-1.png" width="700"></p>
+<p><img src="droplet_volumes_files/figure-html/Poisson_distribution_for_different_values_of_lambda-1.png" width="700"></p>
+</div>
+<div class="section level2 unnumbered">
+<h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-collins_poisson_2015" class="csl-entry">
+Collins, David J., Adrian Neild, Andrew deMello, Ai-Qun Liu, and Ye Ai.
+2015. <span>“The Poisson Distribution and Beyond: Methods for
+Microfluidic Droplet Production and Single Cell Encapsulation.”</span>
+<em>Lab on a Chip</em> 15 (17): 3439–59. <a href="https://doi.org/10.1039/C5LC00614G" class="external-link">https://doi.org/10.1039/C5LC00614G</a>.
+</div>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

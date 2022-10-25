@@ -1,6 +1,7 @@
 ---
 title: "Volumes and Concentrations"
 output: rmarkdown::html_vignette
+bibliography: "bibliography.bib"
 vignette: >
   %\VignetteIndexEntry{Volumes and Concentrations}
   %\VignetteEngine{knitr::rmarkdown}
@@ -23,9 +24,8 @@ library(tidyr)
 
 In this vignette, calculations to estimate volumes, concentrations and other quantities relevant for the droplet making and picoinjection workflow are documented.
 
-## Volumes
+## Tubing
 
-### Tubing
 
 Volume of a cylinder with radius $r$ and height $h$:
 
@@ -44,8 +44,9 @@ Tubing options
 
 | type   | inner diameter      | outer diameter      |
 |--------|---------------------|---------------------|
-| Typgon | 0.508 mm (0.020 in) | 1.524 mm (0.060 in) |
+| Tygon  | 0.508 mm (0.020 in) | 1.524 mm (0.060 in) |
 | PTFE   | 0.8 mm              | 1.6 mm              |
+| PTFE   | 0.3 mm              | 0.78 mm             |
 
 ```{r}
 # everything in m
@@ -56,7 +57,7 @@ radiusPTFE <- 0.8e-3 / 2
 
 Plot the tubing volume as a function of tubing length for lengths up to 1 meter:
 
-```{r}
+```{r PTFE_and_Tygon_tubing_volume}
 volumes <- tibble::tibble("length" = seq(1,1000)) %>% 
   dplyr::mutate(length = length * 1e-3) %>% # convert into mm
   dplyr::mutate(v_tygon = getCylinderVolume(radiusTygon, length),
@@ -69,7 +70,8 @@ ggplot(volumes, aes(x = length, y = volume * 1e9, color = type)) +
   scale_colour_viridis_d(labels = c("PTFE", "Tygon")) + 
   labs(x = "Tubing length [m]",
        y = "Tubing volume [µL]",
-       color = "Tubing type") + 
+       color = "Tubing type",
+       title = "PTFE and Tygon tubing volume") + 
   theme_pretty()
 ```
 
@@ -85,7 +87,8 @@ flowrates <- tibble::tibble("ul_h" = seq(0, 100)) %>%
 ```
 
 
-```{r}
+
+```{r Flowrates_in_PTFE_and_Tygon_tubing}
 ggplot(flowrates, aes(x = ul_h, y = cm_h, color = tubing_type)) + 
   geom_line() + 
   scale_color_viridis_d() + 
@@ -93,12 +96,12 @@ ggplot(flowrates, aes(x = ul_h, y = cm_h, color = tubing_type)) +
   labs(x = "Flowrate [ul/h]",
        y = "Tubing-length flowrate [cm/h]",
        color = "Tubing type",
-       title = "Tubing volume as a function of tubing length")
+       title = "Flowrates in PTFE and Tygon tubing")
 ```
 
 
 
-### Droplets
+## Droplets
 
 How much liquid is contained in a droplet of diameter $d$?
 
@@ -114,13 +117,14 @@ getSphereVolume <- function(radius) {
 
 Plot droplet volumes as function of diameter:
 
-```{r}
+```{r Droplet_volume_vs_diameter}
 tibble::tibble("diameter" = seq(10, 100) * 1e-6) %>% # 10-200 µm droplets
   dplyr::mutate("volume" = getSphereVolume(diameter/2)) %>% 
   ggplot(aes(x = diameter*1e6, y = volume * 1e15)) + # y-axis in picoliters
   geom_line() +
   labs(x = "Droplet diameter [µm]",
-       y = "Droplet volume [pL]") + 
+       y = "Droplet volume [pL]",
+       title = "Droplet volume vs. diameter") + 
   theme_pretty()
 
 ```
@@ -128,7 +132,7 @@ tibble::tibble("diameter" = seq(10, 100) * 1e-6) %>% # 10-200 µm droplets
 
 For droplet sizes up to 40 µm:
 
-```{r}
+```{r Droplet_volume_vs_diameter_2}
 last_plot() + 
   coord_cartesian(xlim = c(10, 40), ylim = c(0, 35))
 ```
@@ -161,7 +165,7 @@ getNumberOfClosePackedSpheres <- function(radius, volume) {
 
 Plot number of close-packed spheres over tubing length:
 
-```{r}
+```{r Number_of_droplets_vs._tubing_length}
 volumes %>% 
   dplyr::mutate(n_droplets = getNumberOfClosePackedSpheres(radiusDroplet, volume)) %>% 
   ggplot(aes(x = length, y = n_droplets*1e-6, color = type)) +
@@ -169,20 +173,54 @@ volumes %>%
   scale_colour_viridis_d(labels = c("PTFE", "Tygon")) + 
   labs(x = "Tubing length [m]",
        y = "Number of close-packed spheres [million]",
-       color = "Tubing type") + 
+       color = "Tubing type",
+       title = "Number of droplets vs. tubing length") + 
   theme_pretty()
 ```
 
 
 
 
+## Cells
+
+How does the volume of a cell compare to that of a droplet?
+
+Dimensions of a typical _E.coli_ cell: 
+- diameter = 1 µm
+- length = 2 µm
+- volume = 1.3 µm^3
+
+Neglecting the packing, plot how many _E.coli_ cells theoretically fit in one droplet:
+
+```{r Number_of_Ecoli_cells_equivalent_to_droplet_volume_vs_droplet_diameter}
+vEcoli <- 1.3e-18
+tibble::tibble("diameter" = seq(10, 40) * 1e-6) %>% # 10-200 µm droplets
+  dplyr::mutate("volume" = getSphereVolume(diameter/2),
+                "n_cells" = volume/vEcoli) %>% 
+  ggplot(aes(x = diameter*1e6, y = n_cells)) + # y-axis in picoliters
+  geom_line() +
+  labs(x = "Droplet diameter [µm]",
+       y = "Number of cells equivalent to droplet volume",
+       title = "Number of E.coli cells equivalent to droplet volume vs. droplet diameter") + 
+  theme_pretty()
+```
 
 
-## Concentrations
+How many mCherry molecules are there in one bacterium, and what is the mCherry concentration in the droplet after cell lysis?
 
-### Single-cell encapsulation
+The motivation for this question is the following:
+In the end, we want to capture those droplets that contained a phage that successfully managed to kill the bacteria.
+While a droplet containing an intact cell causes a narrow signal of high magnitude after excitation by the laser, a droplet whose cells were lysed should result in a broader, low-intensity signal, since its volumetric concentration of fluorescent protein is much smaller.
+However, it is not clear, whether this low signal can be distinguished from the background noise that is present at any given time.
 
-From Collins et al. 2015:
+
+
+
+
+
+## Poisson statistics
+
+From [@collins_poisson_2015] about single-cell encapsulation:
 
 - when number of encapsulated cells is large and size is significantly smaller than the droplet (e.g. bacterial cells), the number of cells per droplet can be representative of the volumetric concentration of cells
   - number of cells can be approximated by a Gaussian distribution
@@ -202,9 +240,9 @@ $$p(k, \lambda) = \frac{\lambda^k e^{-k}}{k!}$$
 
 Plot the Poisson distribution for different $\lambda$:
 
-```{r}
-tidyr::crossing("k" = seq(0,5),
-                "lambda" = c(0.05, 0.25, 0.5, 1, 20)) %>% 
+```{r Poisson_distribution_for_different_values_of_lambda}
+tidyr::crossing("k" = seq(0,10),
+                "lambda" = c(0.05, 0.25, 0.5, 1, 5, 20)) %>% 
   dplyr::mutate("p" = dpois(k, lambda)) %>% 
   ggplot(aes(x = k, y = p)) + 
   geom_line(aes(color = factor(lambda)), linetype = "dashed") + 
@@ -220,4 +258,7 @@ tidyr::crossing("k" = seq(0,5),
 
 
 
+
+
+## References
 

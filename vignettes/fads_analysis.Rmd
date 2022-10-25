@@ -16,18 +16,20 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(picoinjector)
-  library(dplyr)
-  library(readr)
+library(dplyr)
+library(readr)
 library(ggplot2)
 ```
 
 
-Using the LabVIEW software, a TSV file can be recorded during in experiment, where every row corresponds to a droplet that is recognized by the sorter.
+## TSV file
+
+Using the LabVIEW software, a TSV file can be recorded during an experiment, where every row corresponds to a droplet that is recognized by the sorter.
 For a droplet flowing across the focus spot to be recognized, the signal captured by the PMT has to exceed a defined threshold in terms of amplitude and duration.
 This way, droplets can be distinguished from the background signal.
 
 ```{r}
-fads <- fads_read_tsv("data/fads/220916/pi30v4_5.txt")
+fads <- fads_read_tsv("data/fads/220916/pi30v4_1.txt")
 fads
 ```
 
@@ -81,8 +83,6 @@ Plot droplet frequency over time:
 ```{r}
 fads_plot_frequency(fads)
 ```
-
-
 
 
 

@@ -138,7 +138,7 @@ fads_plot_width_time <- function(fads) {
   fads %>%
     fads_format_time_minutes() %>%
     ggplot(aes(x = .data$time, y = .data$width)) +
-    geom_point(shape = 1, alpha = 0.01) +
+    geom_point(shape = 1, alpha = 0.1) +
     theme_pretty() +
     labs(y = "Droplet signal width [ms]",
          x = "Elapsed time [min]",
@@ -166,7 +166,7 @@ fads_plot_signal_time <- function(fads) {
     fads_format_time_minutes() %>%
     tidyr::pivot_longer(c(.data$red, .data$green), names_to = "channel", values_to = "signal") %>%
     ggplot(aes(x = .data$time, y = .data$signal, color = .data$channel)) +
-    scale_color_viridis_d() +
+    scale_color_manual(values = c("red" = "#A2142F", "green" = "#77AC30")) +
     geom_point(shape = 1, alpha = 0.1) +
     theme_pretty() +
     labs(x = "Time [min]",

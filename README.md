@@ -1,14 +1,11 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# picoinjector
-
-<!-- badges: start -->
-<!-- badges: end -->
-
 The goal of this package is to implement analysis scripts and document
 calculations and estimations used for the development of a microfluidic
 picoinjector.
+
+![Picoinjector](vignettes/images/006_pi30_v4.png)
 
 ## Installation
 
@@ -29,9 +26,3 @@ devtools::install_github("fynnwi/picoinjector")
     tubing: `vignette("droplet_volumes")`
 3.  Spin curve analysis of SU-8 3035 custom dilution:
     `vignette("spincurves")`
-
-## To do
-
--   implement colors
--   electric field voltages Vpp, Vrms etc
--   ORCID ID

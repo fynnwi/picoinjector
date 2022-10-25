@@ -1,9 +1,9 @@
 ---
-title: "Hydraulic resistance"
+title: "Fluid Flow"
 output: rmarkdown::html_vignette
 bibliography: "bibliography.bib"
 vignette: >
-  %\VignetteIndexEntry{Hydraulic resistance}
+  %\VignetteIndexEntry{Fluid Flow}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -20,7 +20,9 @@ library(picoinjector)
 library(ggplot2)
 ```
 
-## Straight circular channel
+## Hydraulic resistance
+
+### Straight circular channel
 
 Hydraulic analogy of Ohm's law:
 
@@ -86,13 +88,13 @@ resistance %>%
 
 
 
-## Straight rectangular channel
+### Straight rectangular channel
 
 TODO
 
 
 
-## Networks
+### Networks
 
 TODO
 
