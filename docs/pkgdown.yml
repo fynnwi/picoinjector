@@ -2,11 +2,11 @@ pandoc: 2.17.1.1
 pkgdown: 2.0.6
 pkgdown_sha: ~
 articles:
-  droplet_volumes: droplet_volumes.html
   electrical_engineering: electrical_engineering.html
   fads_analysis: fads_analysis.html
-  hydraulic_resistance: hydraulic_resistance.html
+  fluidics: fluidics.html
   logfiles: logfiles.html
   spincurves: spincurves.html
-last_built: 2022-10-25T12:40Z
+  volumes: volumes.html
+last_built: 2022-10-27T10:39Z
 

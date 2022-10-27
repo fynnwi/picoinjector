@@ -41,12 +41,15 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="articles/droplet_volumes.html">Volumes and Concentrations</a>
-    <a class="dropdown-item" href="articles/electrical_engineering.html">Electrical Engineering</a>
-    <a class="dropdown-item" href="articles/fads_analysis.html">FADS Analysis</a>
-    <a class="dropdown-item" href="articles/hydraulic_resistance.html">Fluid Flow</a>
-    <a class="dropdown-item" href="articles/logfiles.html">Log Files</a>
+    <h6 class="dropdown-header" data-toc-skip>Calculations</h6>
+    <a class="dropdown-item" href="articles/volumes.html">Volumes and Concentrations</a>
+    <a class="dropdown-item" href="articles/fluidics.html">Fluid Flow</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header" data-toc-skip>Data analysis</h6>
     <a class="dropdown-item" href="articles/spincurves.html">SU-8 3035 Spincurve Analysis</a>
+    <a class="dropdown-item" href="articles/logfiles.html">Log Files</a>
+    <a class="dropdown-item" href="articles/fads_analysis.html">FADS Analysis</a>
+    <a class="dropdown-item" href="articles/electrical_engineering.html">Electrical Engineering</a>
   </div>
 </li>
       </ul>
@@ -62,9 +65,7 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><p>The goal of this package is to implement analysis scripts and document calculations and estimations used for the development of a microfluidic picoinjector.</p>
-<div class="figure">
-<img src="articles/images/006_pi30_v4.png" alt=""><p class="caption">Picoinjector</p>
-</div>
+<!-- ![Picoinjector](vignettes/images/006_pi30_v4.png) -->
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -77,13 +78,49 @@
 <h2 id="content">Content<a class="anchor" aria-label="anchor" href="#content"></a>
 </h2>
 <ol style="list-style-type: decimal">
-<li>Calculations to estimate hydraulic resistances in PTFE and Tygon tubing and the resulting flow rates: <code><a href="articles/hydraulic_resistance.html">vignette("hydraulic_resistance")</a></code>
+<li>Calculations to estimate hydraulic resistances in PTFE and Tygon tubing and the resulting flow rates: <code>vignette("hydraulic_resistance")</code>
 </li>
-<li>Estimations to quantify the number of droplets contained in x cm of tubing: <code><a href="articles/droplet_volumes.html">vignette("droplet_volumes")</a></code>
+<li>Estimations to quantify the number of droplets contained in x cm of tubing: <code>vignette("droplet_volumes")</code>
 </li>
 <li>Spin curve analysis of SU-8 3035 custom dilution: <code><a href="articles/spincurves.html">vignette("spincurves")</a></code>
 </li>
 </ol>
+<table class="table">
+<colgroup>
+<col width="72%">
+<col width="27%">
+</colgroup>
+<thead><tr class="header">
+<th>Content</th>
+<th></th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Calculations to estimate volume and concentration in tubing, droplets, and cells</td>
+<td><code><a href="articles/volumes.html">vignette("volumes")</a></code></td>
+</tr>
+<tr class="even">
+<td>Estimates for hydraulic resistance, flow rate, and pressure drop in microfluidic channels</td>
+<td><code>vignette("hydraulic_resistance")</code></td>
+</tr>
+<tr class="odd">
+<td>Functions to import and visualize Elveflow OB1 and CETONI syring pump log files</td>
+<td><code><a href="articles/logfiles.html">vignette("logfiles")</a></code></td>
+</tr>
+<tr class="even">
+<td>Dektak profilometry data analysis to estimate spin coating behaviour of SU-8 3035 custom dilution</td>
+<td><code><a href="articles/spincurves.html">vignette("spincurves")</a></code></td>
+</tr>
+<tr class="odd">
+<td>Analysis of Nyancat data</td>
+<td><code><a href="articles/fads_analysis.html">vignette("fads_analysis")</a></code></td>
+</tr>
+<tr class="even">
+<td>Linear regression of voltage amplifier output for different input amplitudes and frequencies</td>
+<td><code><a href="articles/electrical_engineering.html">vignette("electrical_engineering")</a></code></td>
+</tr>
+</tbody>
+</table>
 </div>
 
   </main><aside class="col-md-3"><div class="license">

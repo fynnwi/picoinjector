@@ -3,3 +3,16 @@ template:
   bootstrap: 5
   bootswatch: flatly
 
+articles:
+- title: Calculations
+  navbar: Calculations
+  contents:
+  - volumes
+  - fluidics
+- title: Data analysis
+  navbar: Data analysis
+  contents:
+  - spincurves
+  - logfiles
+  - fads_analysis
+  - electrical_engineering

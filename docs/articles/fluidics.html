@@ -41,12 +41,15 @@
 <li class="active nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
-    <a class="dropdown-item" href="../articles/fads_analysis.html">FADS Analysis</a>
-    <a class="dropdown-item" href="../articles/hydraulic_resistance.html">Fluid Flow</a>
-    <a class="dropdown-item" href="../articles/logfiles.html">Log Files</a>
-    <a class="dropdown-item" href="../articles/spincurves.html">SU-8 3035 Spincurve Analysis</a>
+    <h6 class="dropdown-header" data-toc-skip>Calculations</h6>
     <a class="dropdown-item" href="../articles/volumes.html">Volumes and Concentrations</a>
+    <a class="dropdown-item" href="../articles/fluidics.html">Fluid Flow</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header" data-toc-skip>Data analysis</h6>
+    <a class="dropdown-item" href="../articles/spincurves.html">SU-8 3035 Spincurve Analysis</a>
+    <a class="dropdown-item" href="../articles/logfiles.html">Log Files</a>
+    <a class="dropdown-item" href="../articles/fads_analysis.html">FADS Analysis</a>
+    <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
   </div>
 </li>
       </ul>
@@ -70,7 +73,7 @@
             
       
       
-      <div class="d-none name"><code>hydraulic_resistance.Rmd</code></div>
+      <div class="d-none name"><code>fluidics.Rmd</code></div>
     </div>
 
     
@@ -129,7 +132,7 @@ s}\)</span>.</p>
 <span>       y <span class="op">=</span> <span class="st">"Hydraulic resistance [10¹¹ Pa s m⁻³]"</span>,</span>
 <span>       color <span class="op">=</span> <span class="st">"Tubing type"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="hydraulic_resistance_files/figure-html/unnamed-chunk-3-1.png" width="700"></p>
+<p><img src="fluidics_files/figure-html/unnamed-chunk-3-1.png" width="700"></p>
 <p>Plot flow rate resulting from pressure drop of 1 Pa as function of
 tubing length:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -143,7 +146,7 @@ tubing length:</p>
 <span>       y <span class="op">=</span> <span class="st">"Flow rate at 1 Pa [uL/s]"</span>,</span>
 <span>       color <span class="op">=</span> <span class="st">"Tubing type"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="hydraulic_resistance_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
+<p><img src="fluidics_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
 </div>
 <div class="section level3">
 <h3 id="straight-rectangular-channel">Straight rectangular channel<a class="anchor" aria-label="anchor" href="#straight-rectangular-channel"></a>

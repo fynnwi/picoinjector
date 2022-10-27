@@ -15,6 +15,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+In this vignette, calculations to estimate volumes, concentrations and other quantities relevant for the droplet making and picoinjection workflow are documented.
+
 ```{r setup, message=FALSE}
 library(picoinjector)
 library(dplyr)
@@ -22,7 +24,6 @@ library(ggplot2)
 library(tidyr)
 ```
 
-In this vignette, calculations to estimate volumes, concentrations and other quantities relevant for the droplet making and picoinjection workflow are documented.
 
 ## Tubing
 
@@ -39,19 +40,20 @@ getCylinderVolume <- function(radius, height) {
 
 
 
-Tubing options
+Tubing options:
 
 
 | type   | inner diameter      | outer diameter      |
 |--------|---------------------|---------------------|
 | Tygon  | 0.508 mm (0.020 in) | 1.524 mm (0.060 in) |
-| PTFE   | 0.8 mm              | 1.6 mm              |
-| PTFE   | 0.3 mm              | 0.78 mm             |
+| PTFE 1 | 0.8 mm              | 1.6 mm              |
+| PTFE 2 | 0.3 mm              | 0.78 mm             |
 
 ```{r}
 # everything in m
 radiusTygon <- 0.508e-3 / 2
-radiusPTFE <- 0.8e-3 / 2
+radiusPTFE1 <- 0.8e-3 / 2
+radiusPTFE2 <- 0.3e-3 / 2
 ```
 
 
@@ -61,13 +63,14 @@ Plot the tubing volume as a function of tubing length for lengths up to 1 meter:
 volumes <- tibble::tibble("length" = seq(1,1000)) %>% 
   dplyr::mutate(length = length * 1e-3) %>% # convert into mm
   dplyr::mutate(v_tygon = getCylinderVolume(radiusTygon, length),
-                v_ptfe = getCylinderVolume(radiusPTFE, length)) %>%
-  tidyr::pivot_longer(c(v_tygon, v_ptfe), names_to = "type", values_to = "volume")
+                v_ptfe_large = getCylinderVolume(radiusPTFE1, length),
+                v_ptfe_small = getCylinderVolume(radiusPTFE2, length)) %>%
+  tidyr::pivot_longer(!length, names_to = "type", values_to = "volume")
 volumes
 
 ggplot(volumes, aes(x = length, y = volume * 1e9, color = type)) + 
   geom_line() + 
-  scale_colour_viridis_d(labels = c("PTFE", "Tygon")) + 
+  scale_colour_viridis_d(labels = c("PTFE 1", "PTFE 2", "Tygon")) + 
   labs(x = "Tubing length [m]",
        y = "Tubing volume [µL]",
        color = "Tubing type",
@@ -82,21 +85,22 @@ Convert flowrate unit µl/h into tubing cm/h:
 ```{r}
 flowrates <- tibble::tibble("ul_h" = seq(0, 100)) %>% 
   dplyr::mutate("Tygon" = ul_h / (getCylinderVolume(radiusTygon, 0.01) * 1e9), 
-                "PTFE" = ul_h / (getCylinderVolume(radiusPTFE, 0.01) * 1e9)) %>% 
+                "PTFE 1" = ul_h / (getCylinderVolume(radiusPTFE1, 0.01) * 1e9),
+                "PTFE 2" = ul_h / (getCylinderVolume(radiusPTFE2, 0.01) * 1e9)) %>% 
   tidyr::pivot_longer(!ul_h, names_to = "tubing_type", values_to = "cm_h")
 ```
 
 
 
 ```{r Flowrates_in_PTFE_and_Tygon_tubing}
-ggplot(flowrates, aes(x = ul_h, y = cm_h, color = tubing_type)) + 
+ggplot(flowrates, aes(x = ul_h, y = cm_h / 60, color = tubing_type)) + 
   geom_line() + 
   scale_color_viridis_d() + 
   theme_pretty() + 
   labs(x = "Flowrate [ul/h]",
        y = "Tubing-length flowrate [cm/h]",
        color = "Tubing type",
-       title = "Flowrates in PTFE and Tygon tubing")
+       title = "Displacement rate in tubing [cm/min] vs. flowrate [µl/h]")
 ```
 
 
@@ -140,7 +144,7 @@ last_plot() +
 
 
 
-How many droplets are there in x mm of Tygon/PTFE tubing?
+How many droplets are there in a given length of Tygon/PTFE tubing?
 
 
 ```{r}
@@ -170,7 +174,7 @@ volumes %>%
   dplyr::mutate(n_droplets = getNumberOfClosePackedSpheres(radiusDroplet, volume)) %>% 
   ggplot(aes(x = length, y = n_droplets*1e-6, color = type)) +
   geom_line() +
-  scale_colour_viridis_d(labels = c("PTFE", "Tygon")) + 
+  scale_colour_viridis_d(labels = c("PTFE 1", "PTFE 2", "Tygon")) + 
   labs(x = "Tubing length [m]",
        y = "Number of close-packed spheres [million]",
        color = "Tubing type",
@@ -179,13 +183,58 @@ volumes %>%
 ```
 
 
+### Volume increase due to picoinjection
+
+Described in [@abate_high-throughput_2010] are injected volumes in the range of 0.5-2 pl for ~ 40 µm droplets (not mentioned in the paper). 
+The injection volume range of the stepinjector [@hu_tunable_2021] is documented as 3.5-122 pl.
+
+How does the diameter of my droplet increase when picoliter volumes are added?
+
+```{r}
+tidyr::crossing("radius" = seq(7.5, 17.5, 0.1) * 1e-6,
+                 "injected" = c(0.5, 1, 2, 5, 10) * 1e-15) %>% 
+  dplyr::mutate("volume_before" = getSphereVolume(radius),
+                "volume_after" = volume_before + injected,
+                "radius_after" = (3/4*volume_after/pi)^(1/3)) %>% 
+  ggplot(aes(x = 2*radius*1e6, y = 2*radius_after*1e6, color = factor(injected * 1e15))) + 
+  geom_line() + 
+  labs(x = "Droplet diameter [µm]",
+       y = "Droplet diameter after injection [µm]",
+       color = "Injected volume [pl]",
+       title = "Change in droplet size after picoinjection") +
+  theme_pretty()
+```
+
+Conclusion: 
+
+
+Which concentration of cells do I need if picoliter volumes are injected and an average 2 cells per droplet should be encapsulated?
+
+```{r}
+tidyr::crossing("injected" = seq(1, 10), # pl
+                "lambda" = c(1, 2, 5)) %>% 
+  dplyr::mutate("concentration" = lambda/injected*1e9) %>% 
+  ggplot(aes(x = injected, y = concentration, color = factor(lambda))) + 
+  geom_line() + 
+  labs(x = "Injected volume [pl]",
+       y = "Cell concentration [cfu/ml]",
+       color = "Average #cells per injection") + 
+  theme_pretty() + 
+  theme(legend.position = c(1,1),
+        legend.justification = c(1,1))
+```
+
+
+
+
 
 
 ## Cells
 
 How does the volume of a cell compare to that of a droplet?
 
-Dimensions of a typical _E.coli_ cell: 
+Approximate dimensions of a typical _E.coli_ cell: 
+
 - diameter = 1 µm
 - length = 2 µm
 - volume = 1.3 µm^3
@@ -242,7 +291,7 @@ Plot the Poisson distribution for different $\lambda$:
 
 ```{r Poisson_distribution_for_different_values_of_lambda}
 tidyr::crossing("k" = seq(0,10),
-                "lambda" = c(0.05, 0.25, 0.5, 1, 5, 20)) %>% 
+                "lambda" = c(0.05, 0.25, 1, 2, 5, 20)) %>% 
   dplyr::mutate("p" = dpois(k, lambda)) %>% 
   ggplot(aes(x = k, y = p)) + 
   geom_line(aes(color = factor(lambda)), linetype = "dashed") + 
@@ -256,6 +305,12 @@ tidyr::crossing("k" = seq(0,10),
 ```
 
 
+
+
+### Volume inference via Poisson statistics
+
+Idea: Record how many droplets are injected with 0/1/2/3 cells and then determine the lambda that best fits the Poisson distribution to this data.
+If the bulk concentration of the injected phase is known, I can use it to infer the injected volume.
 
 
 
