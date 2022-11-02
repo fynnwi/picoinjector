@@ -172,7 +172,7 @@ to 1 meter:</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Flowrate [ul/h]"</span>,</span>
-<span>       y <span class="op">=</span> <span class="st">"Tubing-length flowrate [cm/h]"</span>,</span>
+<span>       y <span class="op">=</span> <span class="st">"Tubing-length flowrate [cm/min]"</span>,</span>
 <span>       color <span class="op">=</span> <span class="st">"Tubing type"</span>,</span>
 <span>       title <span class="op">=</span> <span class="st">"Displacement rate in tubing [cm/min] vs. flowrate [µl/h]"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="volumes_files/figure-html/Flowrates_in_PTFE_and_Tygon_tubing-1.png" width="700"></p>
@@ -203,26 +203,39 @@ r^3\]</span></p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/last_plot.html" class="external-link">last_plot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_cartesian.html" class="external-link">coord_cartesian</a></span><span class="op">(</span>xlim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">40</span><span class="op">)</span>, ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">35</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="volumes_files/figure-html/Droplet_volume_vs_diameter_2-1.png" width="700"></p>
-<p>How many droplets are there in a given length of Tygon/PTFE
-tubing?</p>
+<p>How many droplets are there in 1 ml of emulsion?</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">radiusDroplet</span> <span class="op">&lt;-</span> <span class="fl">15e-6</span> <span class="co"># 30 micron droplets</span></span></code></pre></div>
 <p>Assuming close-packing of equal spheres: fraction of space occupied
 by spheres is</p>
 <p><span class="math display">\[\frac{\pi}{3 \sqrt{2}} \approx
 0.74048\]</span></p>
-<p>Using this packing density, I can calculate the volume occupied by
-spheres for a given tubing length. Dividing by the known volume of a
-single droplet yields the total number of droplets contained in x meters
-of tubing, assuming close-packing of equal spheres.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">getNumberOfClosePackedSpheres</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">radius</span>, <span class="va">volume</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">volumeSingleSphere</span> <span class="op">&lt;-</span> <span class="fl">4</span><span class="op">/</span><span class="fl">3</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="va">radius</span><span class="op">^</span><span class="fl">3</span></span>
 <span>  <span class="va">packingDensity</span> <span class="op">&lt;-</span> <span class="va">pi</span><span class="op">/</span><span class="fl">3</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">packingDensity</span> <span class="op">*</span> <span class="va">volume</span> <span class="op">/</span> <span class="va">volumeSingleSphere</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>Plot number of close-packed spheres over tubing length:</p>
+<p>Using this packing density, I can calculate the volume fraction
+occupied by spheres. Dividing by the known volume of a single droplet
+yields the total number of droplets contained in a given volume of
+emulsion.</p>
+<p>Plot number of droplets contained in 1 ml of emulsion vs. droplet
+diameter:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span><span class="st">"diameter"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">40</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e-6</span>,</span>
+<span>               <span class="st">"n_drops"</span> <span class="op">=</span> <span class="fu">getNumberOfClosePackedSpheres</span><span class="op">(</span><span class="va">diameter</span><span class="op">/</span><span class="fl">2</span>, <span class="fl">1e-6</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">diameter</span> <span class="op">*</span> <span class="fl">1e6</span>, y <span class="op">=</span> <span class="va">n_drops</span> <span class="op">*</span> <span class="fl">1e-6</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Number of close-packed equal spheres in 1 ml"</span>,</span>
+<span>       x <span class="op">=</span> <span class="st">"Sphere diameter [µm]"</span>,</span>
+<span>       y <span class="op">=</span> <span class="st">"Number of spheres [million]"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="volumes_files/figure-html/unnamed-chunk-8-1.png" width="700"></p>
+<p>How many droplets are there in a given length of Tygon/PTFE
+tubing?</p>
+<p>Plot number of close-packed spheres over tubing length:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">volumes</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>n_droplets <span class="op">=</span> <span class="fu">getNumberOfClosePackedSpheres</span><span class="op">(</span><span class="va">radiusDroplet</span>, <span class="va">volume</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">length</span>, y <span class="op">=</span> <span class="va">n_droplets</span><span class="op">*</span><span class="fl">1e-6</span>, color <span class="op">=</span> <span class="va">type</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
@@ -234,6 +247,22 @@ of tubing, assuming close-packing of equal spheres.</p>
 <span>       title <span class="op">=</span> <span class="st">"Number of droplets vs. tubing length"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="volumes_files/figure-html/Number_of_droplets_vs._tubing_length-1.png" width="700"></p>
+<p>Droplet frequency: Given a droplet diameter and a fixed emulsion flow
+rate, how many droplets per second do I get?</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/expand.html" class="external-link">crossing</a></span><span class="op">(</span><span class="st">"flowrate"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">100</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e-9</span> <span class="op">/</span> <span class="op">(</span><span class="fl">60</span><span class="op">*</span><span class="fl">60</span><span class="op">)</span>, <span class="co"># convert µl/h into m^3/s</span></span>
+<span>                <span class="st">"diameter"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">25</span>, <span class="fl">30</span>, <span class="fl">35</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e-6</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"frequency"</span> <span class="op">=</span> <span class="fl">0.74</span><span class="op">*</span> <span class="va">flowrate</span> <span class="op">/</span> <span class="fu">getSphereVolume</span><span class="op">(</span><span class="va">diameter</span><span class="op">/</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">flowrate</span> <span class="op">*</span> <span class="op">(</span><span class="fl">3600</span><span class="op">/</span><span class="fl">1e-9</span><span class="op">)</span>, y <span class="op">=</span> <span class="va">frequency</span>, color <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">diameter</span><span class="op">*</span><span class="fl">1e6</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Droplet frequency vs. flowrate"</span>,</span>
+<span>       y <span class="op">=</span> <span class="st">"Droplet frequency [Hz]"</span>,</span>
+<span>       x <span class="op">=</span> <span class="st">"Flowrate [µl/h]"</span>,</span>
+<span>       color <span class="op">=</span> <span class="st">"Droplet diameter [µm]"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>,</span>
+<span>        legend.justification <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="volumes_files/figure-html/unnamed-chunk-9-1.png" width="700"></p>
 <div class="section level3">
 <h3 id="volume-increase-due-to-picoinjection">Volume increase due to picoinjection<a class="anchor" aria-label="anchor" href="#volume-increase-due-to-picoinjection"></a>
 </h3>
@@ -244,36 +273,40 @@ mentioned in the paper). The injection volume range of the stepinjector
 pl.</p>
 <p>How does the diameter of my droplet increase when picoliter volumes
 are added?</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/expand.html" class="external-link">crossing</a></span><span class="op">(</span><span class="st">"radius"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">7.5</span>, <span class="fl">17.5</span>, <span class="fl">0.1</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e-6</span>,</span>
 <span>                 <span class="st">"injected"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e-15</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"volume_before"</span> <span class="op">=</span> <span class="fu">getSphereVolume</span><span class="op">(</span><span class="va">radius</span><span class="op">)</span>,</span>
 <span>                <span class="st">"volume_after"</span> <span class="op">=</span> <span class="va">volume_before</span> <span class="op">+</span> <span class="va">injected</span>,</span>
 <span>                <span class="st">"radius_after"</span> <span class="op">=</span> <span class="op">(</span><span class="fl">3</span><span class="op">/</span><span class="fl">4</span><span class="op">*</span><span class="va">volume_after</span><span class="op">/</span><span class="va">pi</span><span class="op">)</span><span class="op">^</span><span class="op">(</span><span class="fl">1</span><span class="op">/</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">2</span><span class="op">*</span><span class="va">radius</span><span class="op">*</span><span class="fl">1e6</span>, y <span class="op">=</span> <span class="fl">2</span><span class="op">*</span><span class="va">radius_after</span><span class="op">*</span><span class="fl">1e6</span>, color <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">injected</span> <span class="op">*</span> <span class="fl">1e15</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">30</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Droplet diameter [µm]"</span>,</span>
 <span>       y <span class="op">=</span> <span class="st">"Droplet diameter after injection [µm]"</span>,</span>
 <span>       color <span class="op">=</span> <span class="st">"Injected volume [pl]"</span>,</span>
 <span>       title <span class="op">=</span> <span class="st">"Change in droplet size after picoinjection"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="volumes_files/figure-html/unnamed-chunk-8-1.png" width="700"></p>
+<p><img src="volumes_files/figure-html/unnamed-chunk-10-1.png" width="700"></p>
 <p>Conclusion:</p>
 <p>Which concentration of cells do I need if picoliter volumes are
-injected and an average 2 cells per droplet should be encapsulated?</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+injected and on average 1/2/5 cells per droplet should be
+encapsulated?</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/expand.html" class="external-link">crossing</a></span><span class="op">(</span><span class="st">"injected"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span><span class="op">)</span>, <span class="co"># pl</span></span>
 <span>                <span class="st">"lambda"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"concentration"</span> <span class="op">=</span> <span class="va">lambda</span><span class="op">/</span><span class="va">injected</span><span class="op">*</span><span class="fl">1e9</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">injected</span>, y <span class="op">=</span> <span class="va">concentration</span>, color <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">lambda</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>sec.axis <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/sec_axis.html" class="external-link">sec_axis</a></span><span class="op">(</span>trans <span class="op">=</span> <span class="op">~</span><span class="va">.</span><span class="op">/</span><span class="fl">8e8</span>, name <span class="op">=</span> <span class="st">"Corresponding OD600 value"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Injected volume [pl]"</span>,</span>
 <span>       y <span class="op">=</span> <span class="st">"Cell concentration [cfu/ml]"</span>,</span>
-<span>       color <span class="op">=</span> <span class="st">"Average #cells per injection"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>       color <span class="op">=</span> <span class="st">"Average #cells per injection"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"Required cell concentration vs. injected volume for a given mean number of cells per injection"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span>,</span>
 <span>        legend.justification <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="volumes_files/figure-html/unnamed-chunk-9-1.png" width="700"></p>
+<p><img src="volumes_files/figure-html/unnamed-chunk-11-1.png" width="700"></p>
 </div>
 </div>
 <div class="section level2">
@@ -288,7 +321,7 @@ injected and an average 2 cells per droplet should be encapsulated?</p>
 </ul>
 <p>Neglecting the packing, plot how many <em>E.coli</em> cells
 theoretically fit in one droplet:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vEcoli</span> <span class="op">&lt;-</span> <span class="fl">1.3e-18</span></span>
 <span><span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span><span class="st">"diameter"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">40</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e-6</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> <span class="co"># 10-200 µm droplets</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"volume"</span> <span class="op">=</span> <span class="fu">getSphereVolume</span><span class="op">(</span><span class="va">diameter</span><span class="op">/</span><span class="fl">2</span><span class="op">)</span>,</span>
@@ -345,13 +378,14 @@ droplet</li>
 per droplet volume</li>
 </ul>
 <p>Plot the Poisson distribution for different <span class="math inline">\(\lambda\)</span>:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/expand.html" class="external-link">crossing</a></span><span class="op">(</span><span class="st">"k"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">10</span><span class="op">)</span>,</span>
 <span>                <span class="st">"lambda"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.25</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">20</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"p"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">dpois</a></span><span class="op">(</span><span class="va">k</span>, <span class="va">lambda</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">k</span>, y <span class="op">=</span> <span class="va">p</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">lambda</span><span class="op">)</span><span class="op">)</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">lambda</span><span class="op">)</span><span class="op">)</span>, shape <span class="op">=</span> <span class="fl">22</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">10</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Poisson distribution for different values of lambda"</span>,</span>
 <span>       y <span class="op">=</span> <span class="st">"p(k, lambda)"</span>,</span>
@@ -362,10 +396,80 @@ per droplet volume</li>
 <div class="section level3">
 <h3 id="volume-inference-via-poisson-statistics">Volume inference via Poisson statistics<a class="anchor" aria-label="anchor" href="#volume-inference-via-poisson-statistics"></a>
 </h3>
-<p>Idea: Record how many droplets are injected with 0/1/2/3 cells and
+<p>Idea: Count how many droplets were injected with 0/1/2/3… cells and
 then determine the lambda that best fits the Poisson distribution to
-this data. If the bulk concentration of the injected phase is known, I
-can use it to infer the injected volume.</p>
+this data. If the bulk concentration of the injected phase is known
+precisely, I can use it to infer the injected volume. From that, I can
+then derive the change in droplet size.</p>
+<p>Calculation example:</p>
+<p>Let the cell concentration of the injected phase <span class="math inline">\(c_0 = 0.5 \cdot 10^9 \mathrm{cfu/ml}\)</span>.
+After picoinjection, the following droplet population was recorded:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span><span class="st">"cells_per_droplet"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">7</span><span class="op">)</span>,</span>
+<span>               <span class="st">"n_droplets"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">13</span>, <span class="fl">26</span>, <span class="fl">26</span>, <span class="fl">17</span>, <span class="fl">10</span>, <span class="fl">5</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">counts</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 2</span></span></span>
+<span><span class="co">#&gt;   cells_per_droplet n_droplets</span></span>
+<span><span class="co">#&gt;               <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>                 0         13</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>                 1         26</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>                 2         26</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>                 3         17</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>                 4         10</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>                 5          5</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>                 6          2</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span>                 7          1</span></span></code></pre></div>
+<p>Now I want to find the parameter <span class="math inline">\(\hat{\lambda}\)</span> that best explains the
+observed data. This corresponds to the maximum likelihood estimate of
+the Poisson distribution which is simply the sample mean:</p>
+<p><span class="math display">\[\hat{\lambda}_\mathrm{MLE} = \frac{1}{n}
+\sum_{i=1}^n k_i\]</span></p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/weighted.mean.html" class="external-link">weighted.mean</a></span><span class="op">(</span><span class="va">counts</span><span class="op">$</span><span class="va">cells_per_droplet</span>, <span class="va">counts</span><span class="op">$</span><span class="va">n_droplets</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 2.13</span></span></code></pre></div>
+<p>For above data, <span class="math inline">\(\hat{\lambda}_\mathrm{MLE} = 2.13\)</span> with
+the unit <span class="math inline">\(\mathrm{cfu/V_{injected}}\)</span>.</p>
+<p>Using the known concentration <span class="math inline">\(c_0\)</span> of my injected phase, I can now infer
+the injected volume as</p>
+<p><span class="math display">\[\mathrm {V_{inj}} = \frac{2.13 \;
+\mathrm{cfu}}{0.5 \cdot 10^9 \; \mathrm{cfu/ml}} = 4.26 \cdot 10^{-9} \;
+\mathrm{ml} = 4.26 \; \mathrm{pl}\]</span></p>
+<p>(Numbers of the example data were chosen to approximate picoinjection
+of 5 pl with on average 2 cells encapsulated per droplet)</p>
+<p>How sensitive is this estimate w.r.t. the parameters of this system
+(i.e. cell concentration <span class="math inline">\(c_0\)</span> and
+droplet counts)?</p>
+<p>Implement a function that performs above calculation:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">infer_injected_volume</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">poissonCounts</span>, <span class="va">c0</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">lambda_mle</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/weighted.mean.html" class="external-link">weighted.mean</a></span><span class="op">(</span><span class="va">poissonCounts</span><span class="op">[[</span><span class="st">"cells_per_droplet"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                                     <span class="va">poissonCounts</span><span class="op">[[</span><span class="st">"n_droplets"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">v_injected</span> <span class="op">&lt;-</span> <span class="va">lambda_mle</span><span class="op">/</span><span class="va">c0</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">v_injected</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>Simulate some variance in the measured data:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span><span class="st">"concentration"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.4</span>, <span class="fl">0.6</span>, <span class="fl">0.01</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1e9</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="st">"v_injected"</span> <span class="op">=</span> <span class="fu">infer_injected_volume</span><span class="op">(</span><span class="va">counts</span>, <span class="va">concentration</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">concentration</span>, y <span class="op">=</span> <span class="va">v_injected</span><span class="op">*</span><span class="fl">1e9</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_vline</a></span><span class="op">(</span>xintercept <span class="op">=</span> <span class="fl">0.5e9</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Bulk concentration [cfu/ml]"</span>,</span>
+<span>       y <span class="op">=</span> <span class="st">"Injected volume [pl]"</span><span class="op">)</span>  <span class="op">+</span></span>
+<span>  <span class="fu"><a href="../reference/theme_pretty.html">theme_pretty</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="volumes_files/figure-html/unnamed-chunk-15-1.png" width="700"></p>
+<p>Disadvantages of this approach:</p>
+<ul>
+<li>only works if either:
+<ul>
+<li>I can detect the number of injected cells using the nyancat, or</li>
+<li>I keep the same parameters for the same experiment</li>
+</ul>
+</li>
+<li>I have to get the initial concentration of cells right in order to
+land in a range of number of injected cells that allows to count
+them</li>
+</ul>
 </div>
 </div>
 <div class="section level2 unnumbered">

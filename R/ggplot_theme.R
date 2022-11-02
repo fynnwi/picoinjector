@@ -18,6 +18,7 @@ theme_pretty <- function() {
           # legend.box.just = "right",
           legend.margin =  margin(t = 0.5, b = 0.5, r = 0.5, l = 0.5, unit='cm'),
           legend.background = element_rect(fill="transparent"),
+          # legend.box.background = element_rect(fill = "white"),
           legend.box.spacing = margin(),
           legend.key.size = unit(0.3, "cm")
     )

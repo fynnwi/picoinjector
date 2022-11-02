@@ -156,7 +156,7 @@ fads_plot_width_time <- function(fads) {
 #' @return A ggplot object.
 #' @export
 #'
-#' @importFrom ggplot2 ggplot aes scale_color_viridis_d geom_point labs expand_limits
+#' @importFrom ggplot2 ggplot aes scale_color_manual geom_point labs expand_limits
 #' @importFrom rlang .data
 fads_plot_signal_time <- function(fads) {
   t <- max(fads[["time"]]) - min(fads[["time"]])

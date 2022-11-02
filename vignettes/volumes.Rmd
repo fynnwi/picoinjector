@@ -98,7 +98,7 @@ ggplot(flowrates, aes(x = ul_h, y = cm_h / 60, color = tubing_type)) +
   scale_color_viridis_d() + 
   theme_pretty() + 
   labs(x = "Flowrate [ul/h]",
-       y = "Tubing-length flowrate [cm/h]",
+       y = "Tubing-length flowrate [cm/min]",
        color = "Tubing type",
        title = "Displacement rate in tubing [cm/min] vs. flowrate [µl/h]")
 ```
@@ -141,11 +141,7 @@ last_plot() +
   coord_cartesian(xlim = c(10, 40), ylim = c(0, 35))
 ```
 
-
-
-
-How many droplets are there in a given length of Tygon/PTFE tubing?
-
+How many droplets are there in 1 ml of emulsion?
 
 ```{r}
 radiusDroplet <- 15e-6 # 30 micron droplets
@@ -155,9 +151,6 @@ Assuming close-packing of equal spheres: fraction of space occupied by spheres i
 
 $$\frac{\pi}{3 \sqrt{2}} \approx 0.74048$$
 
-Using this packing density, I can calculate the volume occupied by spheres for a given tubing length.
-Dividing by the known volume of a single droplet yields the total number of droplets contained in x meters of tubing, assuming close-packing of equal spheres.
-
 ```{r}
 getNumberOfClosePackedSpheres <- function(radius, volume) {
   volumeSingleSphere <- 4/3 * pi * radius^3
@@ -166,6 +159,24 @@ getNumberOfClosePackedSpheres <- function(radius, volume) {
 }
 ```
 
+Using this packing density, I can calculate the volume fraction occupied by spheres.
+Dividing by the known volume of a single droplet yields the total number of droplets contained in a given volume of emulsion.
+
+Plot number of droplets contained in 1 ml of emulsion vs. droplet diameter:
+
+```{r}
+tibble::tibble("diameter" = seq(20, 40) * 1e-6,
+               "n_drops" = getNumberOfClosePackedSpheres(diameter/2, 1e-6)) %>% 
+  ggplot(aes(x = diameter * 1e6, y = n_drops * 1e-6)) + 
+  geom_line() + 
+  labs(title = "Number of close-packed equal spheres in 1 ml",
+       x = "Sphere diameter [µm]",
+       y = "Number of spheres [million]") + 
+  theme_pretty()
+```
+
+
+How many droplets are there in a given length of Tygon/PTFE tubing?
 
 Plot number of close-packed spheres over tubing length:
 
@@ -183,6 +194,36 @@ volumes %>%
 ```
 
 
+Droplet frequency: Given a droplet diameter and a fixed emulsion flow rate, how many droplets per second do I get?
+
+
+```{r}
+tidyr::crossing("flowrate" = seq(1, 100) * 1e-9 / (60*60), # convert µl/h into m^3/s
+                "diameter" = c(25, 30, 35) * 1e-6) %>% 
+  dplyr::mutate("frequency" = 0.74* flowrate / getSphereVolume(diameter/2)) %>% 
+  ggplot(aes(x = flowrate * (3600/1e-9), y = frequency, color = factor(diameter*1e6))) + 
+  geom_line() + 
+  labs(title = "Droplet frequency vs. flowrate",
+       y = "Droplet frequency [Hz]",
+       x = "Flowrate [µl/h]",
+       color = "Droplet diameter [µm]") + 
+  theme_pretty() + 
+  theme(legend.position = c(0,1),
+        legend.justification = c(0,1))
+               
+```
+
+
+
+
+
+
+
+
+
+
+
+
 ### Volume increase due to picoinjection
 
 Described in [@abate_high-throughput_2010] are injected volumes in the range of 0.5-2 pl for ~ 40 µm droplets (not mentioned in the paper). 
@@ -197,6 +238,7 @@ tidyr::crossing("radius" = seq(7.5, 17.5, 0.1) * 1e-6,
                 "volume_after" = volume_before + injected,
                 "radius_after" = (3/4*volume_after/pi)^(1/3)) %>% 
   ggplot(aes(x = 2*radius*1e6, y = 2*radius_after*1e6, color = factor(injected * 1e15))) + 
+  geom_hline(yintercept = 30, linetype = "dashed") + 
   geom_line() + 
   labs(x = "Droplet diameter [µm]",
        y = "Droplet diameter after injection [µm]",
@@ -208,7 +250,7 @@ tidyr::crossing("radius" = seq(7.5, 17.5, 0.1) * 1e-6,
 Conclusion: 
 
 
-Which concentration of cells do I need if picoliter volumes are injected and an average 2 cells per droplet should be encapsulated?
+Which concentration of cells do I need if picoliter volumes are injected and on average 1/2/5 cells per droplet should be encapsulated?
 
 ```{r}
 tidyr::crossing("injected" = seq(1, 10), # pl
@@ -216,9 +258,11 @@ tidyr::crossing("injected" = seq(1, 10), # pl
   dplyr::mutate("concentration" = lambda/injected*1e9) %>% 
   ggplot(aes(x = injected, y = concentration, color = factor(lambda))) + 
   geom_line() + 
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./8e8, name = "Corresponding OD600 value")) + 
   labs(x = "Injected volume [pl]",
        y = "Cell concentration [cfu/ml]",
-       color = "Average #cells per injection") + 
+       color = "Average #cells per injection",
+       title = "Required cell concentration vs. injected volume for a given mean number of cells per injection") + 
   theme_pretty() + 
   theme(legend.position = c(1,1),
         legend.justification = c(1,1))
@@ -296,6 +340,7 @@ tidyr::crossing("k" = seq(0,10),
   ggplot(aes(x = k, y = p)) + 
   geom_line(aes(color = factor(lambda)), linetype = "dashed") + 
   geom_point(aes(fill = factor(lambda)), shape = 22) + 
+  scale_x_continuous(breaks = seq(0,10)) + 
   theme_pretty() + 
   labs(title = "Poisson distribution for different values of lambda",
        y = "p(k, lambda)",
@@ -309,8 +354,78 @@ tidyr::crossing("k" = seq(0,10),
 
 ### Volume inference via Poisson statistics
 
-Idea: Record how many droplets are injected with 0/1/2/3 cells and then determine the lambda that best fits the Poisson distribution to this data.
-If the bulk concentration of the injected phase is known, I can use it to infer the injected volume.
+Idea: Count how many droplets were injected with 0/1/2/3... cells and then determine the lambda that best fits the Poisson distribution to this data.
+If the bulk concentration of the injected phase is known precisely, I can use it to infer the injected volume.
+From that, I can then derive the change in droplet size.
+
+Calculation example:
+
+Let the cell concentration of the injected phase $c_0 = 0.5 \cdot 10^9 \mathrm{cfu/ml}$.
+After picoinjection, the following droplet population was recorded:
+
+```{r}
+counts <- tibble::tibble("cells_per_droplet" = seq(0,7),
+               "n_droplets" = c(13, 26, 26, 17, 10, 5, 2, 1))
+counts
+```
+
+Now I want to find the parameter $\hat{\lambda}$ that best explains the observed data.
+This corresponds to the maximum likelihood estimate of the Poisson distribution which is simply the sample mean:
+
+$$\hat{\lambda}_\mathrm{MLE} = \frac{1}{n} \sum_{i=1}^n k_i$$
+
+```{r}
+weighted.mean(counts$cells_per_droplet, counts$n_droplets)
+```
+
+For above data, $\hat{\lambda}_\mathrm{MLE} = 2.13$ with the unit $\mathrm{cfu/V_{injected}}$.
+
+
+Using the known concentration $c_0$ of my injected phase, I can now infer the injected volume as
+
+$$\mathrm {V_{inj}} = \frac{2.13 \; \mathrm{cfu}}{0.5 \cdot 10^9 \; \mathrm{cfu/ml}} = 4.26 \cdot 10^{-9} \; \mathrm{ml} = 4.26 \; \mathrm{pl}$$
+
+(Numbers of the example data were chosen to approximate picoinjection of 5 pl with on average 2 cells encapsulated per droplet)
+
+How sensitive is this estimate w.r.t. the parameters of this system (i.e. cell concentration $c_0$ and droplet counts)?
+
+Implement a function that performs above calculation:
+
+```{r}
+infer_injected_volume <- function(poissonCounts, c0) {
+  lambda_mle <- stats::weighted.mean(poissonCounts[["cells_per_droplet"]],
+                                     poissonCounts[["n_droplets"]])
+  v_injected <- lambda_mle/c0
+  return(v_injected)
+}
+```
+
+Simulate some variance in the measured data:
+
+```{r}
+tibble::tibble("concentration" = seq(0.4, 0.6, 0.01) * 1e9) %>% 
+  dplyr::mutate("v_injected" = infer_injected_volume(counts, concentration)) %>% 
+  ggplot(aes(x = concentration, y = v_injected*1e9)) + 
+  geom_vline(xintercept = 0.5e9, linetype = "dashed") + 
+  geom_line() +
+  labs(x = "Bulk concentration [cfu/ml]",
+       y = "Injected volume [pl]")  +
+  theme_pretty()
+```
+
+
+Disadvantages of this approach:
+
+- only works if either:
+  - I can detect the number of injected cells using the nyancat, or
+  - I keep the same parameters for the same experiment
+- I have to get the initial concentration of cells right in order to land in a range of number of injected cells that allows to count them
+
+
+
+
+
+
 
 
 
