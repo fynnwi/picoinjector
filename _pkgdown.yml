@@ -17,3 +17,7 @@ articles:
   - fads_analysis
   - electrical_engineering
   - comsol
+- title: Thesis
+  navbar: Thesis
+  contents:
+  - thesis_plots

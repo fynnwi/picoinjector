@@ -16,6 +16,7 @@ VignetteBuilder: knitr
 Imports: 
     dplyr,
     ggplot2,
+    grDevices,
     lubridate,
     magrittr,
     readr,

@@ -34,6 +34,9 @@
     <loc>/articles/spincurves.html</loc>
   </url>
   <url>
+    <loc>/articles/thesis_plots.html</loc>
+  </url>
+  <url>
     <loc>/articles/volumes.html</loc>
   </url>
   <url>
@@ -110,5 +113,8 @@
   </url>
   <url>
     <loc>/reference/theme_pretty.html</loc>
+  </url>
+  <url>
+    <loc>/reference/theme_pretty_thesis.html</loc>
   </url>
 </urlset>

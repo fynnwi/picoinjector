@@ -1,0 +1,64 @@
+---
+title: "Thesis Plots"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Thesis Plots}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(picoinjector)
+library(ggplot2)
+```
+
+Global settings:
+
+- theme
+- figure width (= latex textwidth)
+
+```{r}
+textwidth <- 6
+```
+
+
+
+
+## 2 Background
+
+Relative sizes of things on a logarithmic scale:
+
+```{r}
+# define locations of vertical dashed lines
+vLines <- c("atom" = 0.1e-9, "protein" = 4.2e-9, "phage" = 55e-9, "virus" = 100e-9, "bacteria" = 3e-6, "cell" = 10e-6, "human" = 1.8)
+vLines
+
+# x coordinates for axis labels
+xBreaks <- 10^seq(-10, 1)
+names(xBreaks) <- c("0.1 nm", "1 nm", "10 nm", "100 nm", "1 µm", "10 µm", "100 µm", "1 mm", "10 mm", "100 mm", "1 m")
+
+ggplot() + 
+  geom_vline(xintercept = vLines, alpha = 0.2) + 
+  geom_rect(aes(xmin = 10e-6, xmax = 30e-6, ymin = 0, ymax = Inf), alpha = 0.2) +
+  # geom_tile(aes(x = 20e-6, y = 0, width = 20e-6, height = Inf), color = "red") +
+  scale_x_log10(breaks = xBreaks) + 
+  scale_y_continuous(breaks = c(), limits = c(0,1), expand = expansion(add = 0)) + 
+  theme_pretty_thesis()
+```
+
+Save as PDF:
+
+```{r}
+grDevices::pdf(file = "output/plots/02_relative_sizes.pdf", width = textwidth, height = textwidth/3, )
+print(last_plot())
+grDevices::dev.off()
+```
+
+

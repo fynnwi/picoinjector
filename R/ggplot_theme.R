@@ -25,6 +25,31 @@ theme_pretty <- function() {
 }
 
 
+#' Custom ggplot2 Theme For Thesis Figures
+#'
+#' @export
+#' @importFrom ggplot2 theme_bw theme element_text element_blank element_rect element_line margin unit
+theme_pretty_thesis <- function() {
+  theme_bw() +
+    theme(axis.title = element_text(size = 9, color = "black"), axis.text = element_text(size = 8, color = "#333333"),
+          legend.title = element_text(size = 9), legend.text = element_text(size = 8),
+          text=element_text(size=8),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black",
+                                          size = 0.5, linetype = "solid"),
+          #plot.background = element_rect(fill = "#E8C837"),
+          plot.margin = margin(t = 0, unit='cm'),
+          # legend.position = c(1, 1),
+          # legend.justification = c("right", "top"),
+          # legend.box.just = "right",
+          legend.margin =  margin(t = 0.5, b = 0.5, r = 0.5, l = 0.5, unit='cm'),
+          legend.background = element_rect(fill="transparent"),
+          # legend.box.background = element_rect(fill = "white"),
+          legend.box.spacing = margin(),
+          legend.key.size = unit(0.3, "cm")
+    )
+}
 
 
 # customizable attributes
