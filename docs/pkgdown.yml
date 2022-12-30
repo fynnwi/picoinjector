@@ -1,12 +1,13 @@
-pandoc: 2.17.1.1
-pkgdown: 2.0.6
+pandoc: 2.19.2
+pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
+  comsol: comsol.html
   electrical_engineering: electrical_engineering.html
   fads_analysis: fads_analysis.html
   fluidics: fluidics.html
   logfiles: logfiles.html
   spincurves: spincurves.html
   volumes: volumes.html
-last_built: 2022-11-02T10:14Z
+last_built: 2022-12-29T23:19Z
 

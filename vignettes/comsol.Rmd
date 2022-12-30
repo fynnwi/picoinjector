@@ -1,0 +1,54 @@
+---
+title: "COMSOL Simulations"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{COMSOL Simulations}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(picoinjector)
+library(ggplot2)
+```
+
+
+Read the COMSOL file
+
+```{r}
+d <- readr::read_table("data/comsol/tubing_line_integration_spfU", skip = 1, col_names = c("radius", "length", "pressure", "flowrate"))
+d
+```
+
+
+```{r}
+d %>% 
+  ggplot(aes(x = pressure, y = flowrate, color = factor(radius*2))) + 
+  geom_point() + 
+  geom_line(aes(linetype = factor(length))) + 
+  labs(x = "Pressure difference [Pa]",
+       y = "Volumetric flow rate [m^3/s]",
+       linetype = "Tubing length [cm]",
+       color = "Tubing inner diameter [mm]") + 
+  theme_pretty()
+```
+
+```{r}
+d %>% 
+  ggplot(aes(x = radius*2, y = flowrate, color = factor(pressure))) + 
+  geom_point() + 
+  geom_line(aes(linetype = factor(length))) + 
+  labs(x = "Tubing diameter [mm]",
+       y = "Volumetric flow rate [m^3/s]",
+       linetype = "Tubing length [cm]",
+       color = "Pressure difference [Pa]") + 
+  theme_pretty()
+```
+

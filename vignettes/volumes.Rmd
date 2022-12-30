@@ -325,7 +325,7 @@ From [@collins_poisson_2015] about single-cell encapsulation:
 
 Poisson distribution:
 
-$$p(k, \lambda) = \frac{\lambda^k e^{-k}}{k!}$$
+$$p(k, \lambda) = \frac{\lambda^k e^{-\lambda}}{k!}$$
 
 - $k$ number of particles in a droplet
 - $\lambda$ average number of cells per droplet volume
@@ -417,8 +417,8 @@ tibble::tibble("concentration" = seq(0.4, 0.6, 0.01) * 1e9) %>%
 Disadvantages of this approach:
 
 - only works if either:
-  - I can detect the number of injected cells using the nyancat, or
-  - I keep the same parameters for the same experiment
+  - I can detect the number of injected cells using the nyancat (i.e. in real time), or
+  - I keep the same parameters for the same experiment and image afterwards on the Nikon
 - I have to get the initial concentration of cells right in order to land in a range of number of injected cells that allows to count them
 
 
