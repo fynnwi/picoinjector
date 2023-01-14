@@ -1,6 +1,7 @@
 ---
 title: "COMSOL Simulations"
 output: rmarkdown::html_vignette
+bibliography: "bibliography.bib"
 vignette: >
   %\VignetteIndexEntry{COMSOL Simulations}
   %\VignetteEngine{knitr::rmarkdown}
@@ -23,7 +24,7 @@ library(ggplot2)
 Read the COMSOL file
 
 ```{r}
-d <- readr::read_table("data/comsol/tubing_line_integration_spfU", skip = 1, col_names = c("radius", "length", "pressure", "flowrate"))
+d <- readr::read_table("data/comsol/01_tubing_line_integration_spfU.txt", skip = 1, col_names = c("radius", "length", "pressure", "flowrate"))
 d
 ```
 
@@ -52,3 +53,64 @@ d %>%
   theme_pretty()
 ```
 
+
+
+Simulation 02: Flow in Tygon tubing of different lengths at different pressures:
+
+```{r}
+d <- readr::read_table("data/comsol/02_tubing_tygon_parametric_sweep.txt", skip = 1, col_names = c("length", "pressure", "flowrate"))
+d
+```
+
+
+```{r}
+d %>% 
+  ggplot(aes(x = pressure, y = flowrate, color = factor(length))) + 
+  geom_point() + 
+  geom_line()
+```
+
+What is the flow predicted by the Hagen-Poisseuille equation?
+
+
+$$Q = \frac{\Delta p}{R_h} = \frac{\Delta p \pi r^4}{8 \mu l}$$
+
+
+For a (straight) channel with circular cross-section, the hydraulic resistance is defined as $R_h = \frac{8 \mu L}{\pi r^4}$ with $\mu$ dynamic viscosity, $L$ channel length, and $r$ channel radius [@bruus_theoretical_2008].
+
+
+Function to evaluate Hagen-Poisseuille equation:
+
+```{r}
+mu <- 8.9e-4 # water, 8.9e-4 Pa s
+q_hagen_poisseuille <- function(deltaP, radius, length, mu) {
+  return(deltaP * pi * radius^4 / (8 * mu * length))
+}
+
+# function to convert m^3/s into ml/h
+m3s_to_mlh <- function(x) {
+  return(x*1e6*3600)
+}
+```
+
+Flow rate according to HP law vs. COMSOL simulation result:
+
+```{r}
+d %>% 
+  dplyr::mutate(hagen_poisseuille = q_hagen_poisseuille(pressure*1e5, 0.254e-3, length * 1e-2, mu) %>% 
+                  m3s_to_mlh()) %>% 
+  dplyr::rename("comsol" = "flowrate") %>% 
+  tidyr::pivot_longer(c(comsol, hagen_poisseuille)) %>% 
+  ggplot(aes(x = pressure, y = value, color = factor(length), linetype = name)) + 
+  geom_point() +
+  geom_line() + 
+  theme_pretty() + 
+  labs(x = "Pressure [bar]",
+       y = "Flow rate [ml/h]",
+       color = "Tubing length [cm]",
+       linetype = "Result")
+```
+
+
+
+## References

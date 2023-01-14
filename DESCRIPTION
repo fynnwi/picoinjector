@@ -19,8 +19,10 @@ Imports:
     grDevices,
     lubridate,
     magrittr,
+    patchwork,
     readr,
     rlang,
     stringr,
     tibble,
-    tidyr
+    tidyr,
+    wesanderson

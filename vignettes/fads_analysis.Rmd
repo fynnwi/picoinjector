@@ -29,7 +29,7 @@ For a droplet flowing across the focus spot to be recognized, the signal capture
 This way, droplets can be distinguished from the background signal.
 
 ```{r}
-fads <- fads_read_tsv("data/fads/220916/pi30v4_1.txt")
+fads <- fads_read_tsv("data/fads/220916/pi30v4_0.txt")
 fads
 ```
 
@@ -55,7 +55,7 @@ Lets look at the signal width as well:
 
 ```{r}
 fads %>% 
-  fads_remove_outliers() %>% 
+  # fads_remove_outliers() %>% 
   fads_plot_width()
 ```
 
@@ -64,7 +64,7 @@ Plot width vs. time:
 
 ```{r}
 fads %>% 
-  fads_remove_outliers() %>% 
+  # fads_remove_outliers() %>% 
   fads_plot_width_time()
 ```
 
@@ -82,6 +82,22 @@ Plot droplet frequency over time:
 
 ```{r}
 fads_plot_frequency(fads)
+```
+
+
+Over the course of this project, I collected many FADS tsv files.
+From each of them, I want to generate a comprehensive report containing all the plots shown above with a single function call.
+Probably the best way to this, is combining all the ggplot objects into one plot using patchwork:
+
+```{r, fig.widt=20}
+p <- fads_generate_report("data/fads/220916/pi30v4_6.txt")
+p
+```
+
+Do this for all `.txt` files that were generate by the FADS setup:
+
+```{r, eval=FALSE}
+fads_reports_for_all("~/nyancat_tsv", "output/fads_data_exploration/")
 ```
 
 

@@ -52,7 +52,7 @@
     <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
     <a class="dropdown-item" href="../articles/comsol.html">COMSOL Simulations</a>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header" data-toc-skip>Thesis stuff</h6>
+    <h6 class="dropdown-header" data-toc-skip>Thesis</h6>
     <a class="dropdown-item" href="../articles/thesis_plots.html">Thesis Plots</a>
   </div>
 </li>
@@ -105,22 +105,22 @@ recognized, the signal captured by the PMT has to exceed a defined
 threshold in terms of amplitude and duration. This way, droplets can be
 distinguished from the background signal.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fads</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fads_read_tsv.html">fads_read_tsv</a></span><span class="op">(</span><span class="st">"data/fads/220916/pi30v4_1.txt"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">fads</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fads_read_tsv.html">fads_read_tsv</a></span><span class="op">(</span><span class="st">"data/fads/220916/pi30v4_0.txt"</span><span class="op">)</span></span>
 <span><span class="va">fads</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7,680 × 6</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 43,950 × 6</span></span></span>
 <span><span class="co">#&gt;           time  blue green   red width spacing</span></span>
 <span><span class="co">#&gt;          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">190</span>653.     0 0.229 0.942  2.42   12.4 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">190</span>703.     0 0.227 1.00   2.76    8.10</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">190</span>777.     0 0.226 0.911  2.38   13.0 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">190</span>830.     0 0.222 0.820  1.79    8.84</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">190</span>905.     0 0.225 1.00   2.69   14.1 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">190</span>963.     0 0.221 0.927  2.46    9.64</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">191</span>046.     0 0.242 0.929  2.80   15.1 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">191</span>101.     0 0.236 0.994  2.62    8.59</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">191</span>178.     0 0.233 1.00   2.9    13.8 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> <span style="text-decoration: underline;">3</span>635<span style="text-decoration: underline;">191</span>228.     0 0.229 0.954  2.62    7.61</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># … with 7,670 more rows</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">845</span>945.     0 0.222 1.13   3.18    9.09</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>023.     0 0.218 0.943  2.62   13.3 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>070.     0 0.218 0.872  2.29    7.3 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>129.     0 0.238 0.963  2.90   10.1 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>181.     0 0.237 0.914  2.64    8.05</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>254.     0 0.234 0.935  2.85   12.7 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>297.     0 0.228 0.941  2.80    6.32</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>383.     0 0.229 0.902  2.68   15.5 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>415.     0 0.227 0.883  2.52    4.04</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> <span style="text-decoration: underline;">3</span>631<span style="text-decoration: underline;">846</span>502.     0 0.227 1.10   3.30   15.8 </span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># … with 43,940 more rows</span></span></span></code></pre></div>
 <p>This function allows to plot the red against the green signal:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fads</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
@@ -136,13 +136,13 @@ distinguished from the background signal.</p>
 <p>Lets look at the signal width as well:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fads</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="../reference/fads_remove_outliers.html">fads_remove_outliers</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="co"># fads_remove_outliers() %&gt;% </span></span>
 <span>  <span class="fu"><a href="../reference/fads_plot_width.html">fads_plot_width</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="fads_analysis_files/figure-html/unnamed-chunk-5-1.png" width="700"></p>
 <p>Plot width vs. time:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fads</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="../reference/fads_remove_outliers.html">fads_remove_outliers</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
+<span>  <span class="co"># fads_remove_outliers() %&gt;% </span></span>
 <span>  <span class="fu"><a href="../reference/fads_plot_width_time.html">fads_plot_width_time</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="fads_analysis_files/figure-html/unnamed-chunk-6-1.png" width="700"></p>
 <p>Plot signal vs. time:</p>
@@ -155,6 +155,19 @@ distinguished from the background signal.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/fads_plot_frequency.html">fads_plot_frequency</a></span><span class="op">(</span><span class="va">fads</span><span class="op">)</span></span></code></pre></div>
 <p><img src="fads_analysis_files/figure-html/unnamed-chunk-8-1.png" width="700"></p>
+<p>Over the course of this project, I collected many FADS tsv files.
+From each of them, I want to generate a comprehensive report containing
+all the plots shown above with a single function call. Probably the best
+way to this, is combining all the ggplot objects into one plot using
+patchwork:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fads_generate_report.html">fads_generate_report</a></span><span class="op">(</span><span class="st">"data/fads/220916/pi30v4_6.txt"</span><span class="op">)</span></span>
+<span><span class="va">p</span></span></code></pre></div>
+<p><img src="fads_analysis_files/figure-html/unnamed-chunk-9-1.png" width="700"></p>
+<p>Do this for all <code>.txt</code> files that were generate by the
+FADS setup:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/fads_reports_for_all.html">fads_reports_for_all</a></span><span class="op">(</span><span class="st">"~/nyancat_tsv"</span>, <span class="st">"output/fads_data_exploration/"</span><span class="op">)</span></span></code></pre></div>
 </div>
   </main>
 </div>

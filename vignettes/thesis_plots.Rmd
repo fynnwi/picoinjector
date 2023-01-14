@@ -17,6 +17,8 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(picoinjector)
 library(ggplot2)
+library(patchwork)
+library(wesanderson)
 ```
 
 Global settings:
@@ -25,7 +27,8 @@ Global settings:
 - figure width (= latex textwidth)
 
 ```{r}
-textwidth <- 6
+textwidth <- 6.14
+wes_palette("Zissou1")
 ```
 
 
@@ -35,22 +38,31 @@ textwidth <- 6
 
 Relative sizes of things on a logarithmic scale:
 
-```{r}
+```{r, fig.width=6, fig.height=3}
 # define locations of vertical dashed lines
-vLines <- c("atom" = 0.1e-9, "protein" = 4.2e-9, "phage" = 55e-9, "virus" = 100e-9, "bacteria" = 3e-6, "cell" = 10e-6, "human" = 1.8)
+vLines <- c("atom" = 0.1e-9, "DNA" = 2e-9, "protein" = 4.2e-9, "phage" = 55e-9, "virus" = 100e-9, "bacteria" = 3e-6, "animal_cell" = 20e-6, "plant_cell" = 80e-6, "drosophilia" = 3e-3, "human" = 1.8)
 vLines
+
+# define locations of range dashed lines
+rangesXmin <- c(3e-9, 10e-6, 10e-6, 10e-6)
+rangesXmax <- c(6e-9, 30e-6, 100e-6, 1e-3)
+rangesY <- c(0.05, 0.1, 0.2, 0.13)
 
 # x coordinates for axis labels
 xBreaks <- 10^seq(-10, 1)
 names(xBreaks) <- c("0.1 nm", "1 nm", "10 nm", "100 nm", "1 µm", "10 µm", "100 µm", "1 mm", "10 mm", "100 mm", "1 m")
 
+
 ggplot() + 
-  geom_vline(xintercept = vLines, alpha = 0.2) + 
-  geom_rect(aes(xmin = 10e-6, xmax = 30e-6, ymin = 0, ymax = Inf), alpha = 0.2) +
+  geom_vline(xintercept = vLines, alpha = 0.2, linetype = "dashed") + 
+  geom_errorbarh(aes(xmin = rangesXmin, xmax = rangesXmax, y = rangesY), alpha = 0.2, linetype = "dashed", height = 0.05) +
+  # geom_rect(aes(xmin = 10e-6, xmax = 30e-6, ymin = 0, ymax = Inf), alpha = 0.2) +
   # geom_tile(aes(x = 20e-6, y = 0, width = 20e-6, height = Inf), color = "red") +
   scale_x_log10(breaks = xBreaks) + 
   scale_y_continuous(breaks = c(), limits = c(0,1), expand = expansion(add = 0)) + 
-  theme_pretty_thesis()
+  theme_pretty_thesis() + 
+  theme(axis.title.y = element_blank())
+  # annotation_logticks(side = "b", color = "gray")
 ```
 
 Save as PDF:
@@ -60,5 +72,114 @@ grDevices::pdf(file = "output/plots/02_relative_sizes.pdf", width = textwidth, h
 print(last_plot())
 grDevices::dev.off()
 ```
+
+
+
+
+Poisson distribution for different $\lambda$:
+
+```{r Poisson_distribution_for_different_values_of_lambda, fig.width=6, fig.height=3}
+p1 <- tidyr::crossing("k" = seq(0,6),
+                "lambda" = c(0.1, 0.25, 1, 2, 5)) %>% 
+  dplyr::mutate("p" = dpois(k, lambda)) %>% 
+  ggplot(aes(x = k, y = p)) + 
+  geom_line(aes(color = factor(lambda)), linetype = "dashed") + 
+  geom_point(aes(fill = factor(lambda)), shape = 21) + 
+  scale_x_continuous(breaks = seq(0,6)) + 
+  # scale_y_continuous(breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) + 
+  theme_pretty_thesis() + 
+  scale_fill_manual(values = wes_palette("Darjeeling1")) + 
+  scale_color_manual(values = wes_palette("Darjeeling1")) + 
+  theme(
+    # panel.grid.major = element_line(color = "black", linewidth = 0.1),
+        legend.position = c(1,1),
+        legend.justification = c(1,1)) + 
+  labs(y = expression(p(lambda, k)),
+       x = "k",
+       color = expression(lambda),
+       fill = expression(lambda),
+       tag = "A") + 
+  ylim(c(0,1)) +
+  coord_cartesian(expand =F)
+p1
+```
+
+Evaluate Poisson PDF as function of lambda:
+
+```{r}
+p2 <- tibble::tibble("lambda" = seq(0,2,0.01),
+               "single" = stats::dpois(1, lambda),
+               "empty" = stats::dpois(0, lambda),
+               "multiple" = 1 - stats::ppois(1, lambda)) %>% 
+  tidyr::pivot_longer(!lambda) %>% 
+  ggplot(aes(x = lambda, y = value, linetype = name)) + 
+  geom_line() +
+  scale_linetype_discrete(labels = c(expression(p(k == 0)), expression(p(k==1)), expression(p(k >= 1))),
+                          guide = guide_legend(title = NULL, title.position = "left")) + 
+  theme_pretty_thesis() + 
+  theme(legend.position = c(1,1),
+        legend.justification = c(1,1),
+        legend.key.width = unit(0.5, "cm")) +
+  coord_cartesian(expand = F) + 
+  labs(x = expression(lambda),
+       y = expression(p(lambda, k)),
+       tag = "B")
+p2
+```
+
+Patchwork:
+
+```{r, fig.width=6, fig.height=3}
+p1 + p2 &
+  theme(plot.margin = margin(r = 4, t = 3))
+```
+
+
+```{r}
+grDevices::pdf(file = "output/plots/02_poisson_distribution.pdf", width = textwidth, height = textwidth/2, )
+print(last_plot())
+grDevices::dev.off()
+```
+
+
+
+
+
+## 4 Results
+
+```{r}
+fads <- fads_read_tsv("data/fads/220916/pi30v4_6.txt")
+fads
+```
+
+
+```{r, fig.width = 6.2, fig.height=2.1}
+fads %>% 
+  fads_remove_outliers() %>% 
+  ggplot(aes(x = green, y = red)) +
+  geom_bin2d(bins = 100, drop = T) + 
+  scale_fill_gradientn(colours = wes_palette("Zissou1", 100, type = "continuous")) + 
+  theme_pretty_thesis() + 
+  theme(legend.position = c(1, 0),
+        legend.justification = c(1,0),
+        legend.box.background = element_rect(fill = "white")) + 
+  labs(x = "Green PMT signal [V]",
+       y = "Red PMT signal [V]",
+       fill = "Droplets")
+```
+
+
+```{r}
+grDevices::pdf(file = "output/plots/04_fads_green_red.pdf", width = textwidth, height = textwidth/3, )
+print(last_plot())
+grDevices::dev.off()
+```
+
+
+
+
+
+
+
 
 

@@ -31,7 +31,7 @@ theme_pretty <- function() {
 #' @importFrom ggplot2 theme_bw theme element_text element_blank element_rect element_line margin unit
 theme_pretty_thesis <- function() {
   theme_bw() +
-    theme(axis.title = element_text(size = 9, color = "black"), axis.text = element_text(size = 8, color = "#333333"),
+    theme(axis.title = element_text(size = 9, color = "black"), axis.text = element_text(size = 8, color = "black"),
           legend.title = element_text(size = 9), legend.text = element_text(size = 8),
           text=element_text(size=8),
           panel.grid.major = element_blank(),
@@ -47,10 +47,37 @@ theme_pretty_thesis <- function() {
           legend.background = element_rect(fill="transparent"),
           # legend.box.background = element_rect(fill = "white"),
           legend.box.spacing = margin(),
-          legend.key.size = unit(0.3, "cm")
-    )
+          legend.key.size = unit(0.3, "cm"),
+          plot.tag.position = c(0,1),
+          plot.tag = element_text(vjust = 1, hjust = 0))
 }
 
+#' Custom ggplot2 Theme For Package Figures
+#'
+#' @return A patchwork object.
+#'
+theme_pretty_custom <- function() {
+  theme_bw() +
+    theme(axis.title = element_text(size = 9, color = "black"), axis.text = element_text(size = 8, color = "black"),
+          legend.title = element_text(size = 9), legend.text = element_text(size = 8),
+          text=element_text(size=8),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black",
+                                          size = 0.5, linetype = "solid"),
+          #plot.background = element_rect(fill = "#E8C837"),
+          plot.margin = margin(t = 0.5, r=0.5, unit='cm'),
+          legend.position = c(0.99, 0.01),
+          legend.justification = c(1,0),
+          legend.box.just = "right",
+          legend.margin = margin(),
+          legend.background = element_rect(fill="white"),
+          # legend.box.background = element_rect(fill = "white"),
+          legend.box.spacing = margin(),
+          legend.key.size = unit(0.3, "cm"),
+          plot.tag.position = c(0,1),
+          plot.tag = element_text(vjust = 1, hjust = 0))
+}
 
 # customizable attributes
 # theme(
@@ -150,3 +177,4 @@ theme_pretty_thesis <- function() {
 #   complete = FALSE,
 #   validate = TRUE
 #
+
