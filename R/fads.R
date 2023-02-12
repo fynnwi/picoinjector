@@ -401,10 +401,11 @@ fads_generate_report <- function(tsvFile, bins = 100) {
 #'
 #' @param directory A directory.
 #' @param outputDir Destination for the generated PDF files.
+#' @param bins Number of bins.
 #'
 #' @export
 #'
-fads_reports_for_all <- function(directory, outputDir) {
+fads_reports_for_all <- function(directory, outputDir, bins = 75) {
   # recursively search directory for txt files
   files <- list.files(directory, pattern = "*.txt", recursive = TRUE, full.names = TRUE)
 
@@ -420,11 +421,32 @@ fads_reports_for_all <- function(directory, outputDir) {
     print(paste("Processing", f))
 
     # convert file into report
-    r <- fads_generate_report(f)
+    r <- fads_generate_report(f, bins)
      # write PDF
     fname <- paste0(basename(dirname(f)), "_", stringr::str_remove(basename(f), ".txt$"), ".pdf")
     grDevices::pdf(file.path(outputDir, fname), width = 16.54, height = 11.69)
     print(r)
     grDevices::dev.off()
   }
+}
+
+
+#' FADS Read All
+#'
+#' Combines all available data into one tibble.
+#'
+#' @param dir Directory containing FADS TSV files.
+#' @param suffix Suffix identifiying FADS TSV files.
+#'
+#' @return A tibble.
+#' @export
+fads_read_all <- function(dir, suffix) {
+  files <- list.files(dir, full.names = T, pattern = suffix)
+
+  all <- tibble::tibble()
+  for (f in files) {
+    all <- dplyr::bind_rows(all, readr::read_tsv(f, show_col_types = F) %>%
+                              dplyr::mutate("file" = stringr::str_remove(basename(f), suffix)))
+  }
+  return(all)
 }

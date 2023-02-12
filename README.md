@@ -17,15 +17,15 @@ You can install the development version of picoinjector from
 devtools::install_github("fynnwi/picoinjector")
 ```
 
-## Content
+Run on LRZ AI systems:
 
-1.  Calculations to estimate hydraulic resistances in PTFE and Tygon
-    tubing and the resulting flow rates:
-    `vignette("hydraulic_resistance")`
-2.  Estimations to quantify the number of droplets contained in x cm of
-    tubing: `vignette("droplet_volumes")`
-3.  Spin curve analysis of SU-8 3035 custom dilution:
-    `vignette("spincurves")`
+``` r
+update.packages(ask = FALSE)
+install.packages(c("hexbin", "pkgdown", "patchwork"))
+devtools::install()
+```
+
+## Content
 
 | Content                                                                                           |                                      |
 |---------------------------------------------------------------------------------------------------|--------------------------------------|

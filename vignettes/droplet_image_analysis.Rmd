@@ -1,0 +1,626 @@
+---
+title: "Droplet Image Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Droplet Image Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(picoinjector)
+library(ggplot2)
+library(dplyr)
+library(wesanderson)
+library(patchwork)
+```
+
+
+
+Combine all the available data:
+
+Find the files:
+
+```{r}
+replaceChannel <- function(channelNr) {
+  if (channelNr == 1) {
+    return("BF")
+  } else if (channelNr == 2) {
+    return("RFP")
+  } else if (channelNr == 3) {
+    return("CFP")
+  } else if (channelNr == 4) {
+    return("GFP")
+  } else {
+    return(NA)
+  }
+}
+
+fnames <- list.files("data/droplet_image_analysis/20230125/", pattern = "*.csv", full.names = TRUE)
+
+drops <- tibble::tibble()
+for (f in fnames) {
+  d <- readr::read_csv(f,
+                  col_names = c("label", "area", "mean", "sd", "min", "max", "perim", "feret", "channel", "feret_x", "feret_y", "feret_angle", "feret_min"), skip = 0,
+                  show_col_types = FALSE) %>% 
+    tidyr::separate_wider_delim(label, " - ", names = c("nd_file", NA, "roi_id", "series")) %>% 
+    dplyr::mutate("series" = stringr::str_extract(series, "series \\d\\d"),
+                  "channel" = sapply(channel, replaceChannel))
+  # format roi_id and assign incubation time
+  # ovenright + t:x/25 -> 2h + x min
+  if (startsWith(basename(f), "overnight_000.nd2")) {
+    # read incubation time from roi_id
+    d <- d %>% 
+      tidyr::separate_wider_delim(roi_id, ":", names = c("roi_id", NA, NA, "incubation")) %>% 
+      dplyr::mutate("incubation" = hms::hms(hours = 2, minutes = stringr::str_split(incubation, "/")[[1]][1] %>% as.numeric()*10))
+    
+  } else if (startsWith(basename(f), "next_morning_.nd2")) {
+    d <- d %>% 
+      tidyr::separate_wider_delim(roi_id, ":", names = c("roi_id", NA, NA)) %>% 
+      dplyr::mutate("incubation" = hms::hms(hours = 10))
+  } else {
+    stop(paste("File prefix", basename(f), "not recognized"))
+  }
+  
+  drops <- dplyr::bind_rows(drops, d)
+  stopifnot(ncol(drops) == 16)
+}
+```
+
+Get rid of brightfield measurements, not needed here.
+
+```{r}
+drops <- drops %>% 
+  dplyr::filter(channel != "BF")
+```
+
+Furthermore, ignore measurements from next day:
+
+```{r}
+# drops <- drops %>% 
+#   dplyr::filter(incubation < hms::hms(hours = 3))
+```
+
+
+
+Investigate droplet shapes (therefore, only one channel is enough:
+
+```{r}
+drops %>% 
+  dplyr::filter(channel == "RFP") %>% 
+  dplyr::mutate(delta_feret = feret-feret_min) %>% 
+  tidyr::pivot_longer(c(area, perim, feret, feret_min, delta_feret)) %>% 
+  ggplot(aes(x = value)) +
+  geom_histogram(bins = 30) + 
+  theme_pretty() + 
+  facet_wrap(~name, scales = "free")
+```
+
+Filter out non-spherical or too large/small droplets:
+
+```{r}
+drops <- drops %>% 
+  # remove ROIs that are not spherical, i.e. whose min feret radius deviates too much from the max:
+  dplyr::filter(feret - feret_min < 1.5) %>% 
+  # allow only droplets between 27-35 µm in diameter:
+  dplyr::filter(area > 575 & area < 962)
+  # look only at 2h incubation
+  # dplyr::filter(incubation < hms::hms(hours = 3))
+```
+
+
+Plot distribution of intensities:
+
+```{r}
+drops %>% 
+  tidyr::pivot_longer(c(mean, sd, min, max)) %>% 
+  ggplot(aes(x = value)) + 
+  geom_histogram(bins = 50) + 
+  facet_grid(name ~ channel, scales = "free") + 
+  theme_pretty_thesis()
+```
+
+It can be seen that CFP is not bimodal, as it should be...
+
+
+Get a summary of the data:
+
+```{r}
+drops %>% 
+  group_by(incubation) %>% 
+  summarize(n_droplets = n())
+```
+
+
+
+
+Format
+
+```{r}
+dwide <- drops %>% 
+  dplyr::select(c(-perim, -feret_x, -feret_y, -feret_angle, -feret_min)) %>% 
+  tidyr::pivot_wider(names_from = channel, values_from = c(mean, sd, min, max))
+dwide
+```
+
+
+Threshold green at intensity of 5000:
+
+```{r}
+dwide <-dwide %>% 
+  dplyr::mutate("green" = ifelse(mean_GFP > 5000, TRUE, FALSE))
+```
+
+
+
+
+```{r}
+dwide %>% 
+  ggplot(aes(x = log10(max_RFP), fill = green)) + 
+  geom_histogram(bins = 50, position = "identity", alpha = 0.5) +
+  theme_pretty_thesis() + 
+  facet_wrap(~incubation, scales = "free")
+```
+
+Calculate average red signal in GREEN (phage) vs. EMPTY (mTq) droplets:
+
+```{r}
+dwide %>% 
+  dplyr::group_by(incubation, green) %>% 
+  dplyr::summarise("mean_rfp" = mean(mean_RFP),
+                   "max_rfp"= mean(max_RFP),
+                   "sd_rfp" = mean(sd_RFP))
+```
+
+
+Plot green mean intensity vs red mean intensity
+
+There is something going on with the CFP-GFP relation.
+There are two clusters.
+Does one correspond to bleed-through and the other to the actual population?
+
+```{r}
+dwide %>% 
+  ggplot(aes(x = mean_GFP, y = mean_CFP)) + 
+  geom_point(alpha = 0.1) +
+  geom_abline(slope = 0.1, linetype = "dashed") + 
+  scale_color_viridis_c() + 
+  theme_pretty_thesis()
+```
+
+There is a population of droplets whose blue signal is highly correlated to their green signal intensity. 
+This looks like a bleed-through artifact.
+
+I divide the two populations into clusters separated by a simple line with the formula mean_CFP = 0.1 mean_GFP
+
+```{r}
+dwide <- dwide %>% 
+  dplyr::mutate("blue" = dplyr::case_when(mean_CFP > 0.1 * mean_GFP ~ "mTurquoise",
+                                             .default = "Atto488"))
+dwide %>% 
+  ggplot(aes(x = mean_GFP, y = mean_CFP)) + 
+  geom_vline(xintercept = 5000, linetype = "dashed", color = "green") +
+  geom_point(aes(color = blue), alpha = 0.2) +
+  geom_abline(slope = 0.1, linetype = "dashed") + 
+  theme_pretty_thesis() + 
+  facet_wrap(~incubation)
+```
+
+This clustering seems reasonable because there are just very few droplets that are _both_ green and blue.
+(In theory they are mutually exclusive.)
+
+```{r}
+blueClusters <- dwide %>% 
+  dplyr::select(c(nd_file, series, incubation, roi_id, blue))
+```
+
+
+
+
+
+Colloquium plot:
+
+```{r, fig.width=4.57, fig.height=3.39}
+dwide %>% 
+  dplyr::filter(incubation == hms::hms(hours = 2, minutes = 20)) %>% 
+  ggplot(aes(x = mean_GFP, y = mean_CFP)) + 
+  geom_point(alpha = 0.1) +
+  theme_pretty_thesis() +
+  labs(x = "Mean GFP intensity",
+       y = "Mean CFP intensity")
+```
+
+```{r, eval=FALSE}
+ggsave("output/plots/04_phage_droplet_cfp_gfp.png", width = 4.57, height = 3.39, dpi = 300)
+```
+
+
+
+
+```{r, fig.width=4.57, fig.height=3.39}
+dwide %>% 
+  dplyr::filter(incubation == hms::hms(hours = 2, minutes = 20)) %>%
+  ggplot(aes(x = mean_GFP, y = mean_CFP)) + 
+  geom_vline(xintercept = 5000, linetype = "dashed") +
+  geom_point(aes(color = blue), alpha = 0.1) +
+  scale_color_manual(values = c("darkseagreen", "cyan3"), labels =rev(c( "mTurquoise", "Atto488 (bleed-through)"))) +
+  # scale_color_viridis_d(begin = 0.3, end = 0.8) +
+  geom_abline(slope = 0.1, linetype = "dashed") +
+  theme_pretty_thesis()  + 
+  guides(color = guide_legend(override.aes = list(alpha = 1))) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1)) + 
+  labs(x = "Mean GFP intensity",
+       y = "Mean CFP intensity",
+       color = "CFP signal source")
+```
+
+
+```{r, eval=FALSE}
+ggsave("output/plots/04_phage_droplet_cfp_gfp_clustered.png", width = 4.57, height = 3.39, dpi = 300)
+```
+
+
+
+Make some boxplots.
+Plot distributions of min, max, mean, sd for every channel and every incubation time
+
+```{r, fig.width = 20}
+drops %>% 
+  # dplyr::filter(channel == "RFP") %>% 
+  left_join(blueClusters, by = c("nd_file", "series", "incubation", "roi_id")) %>% 
+  tidyr::pivot_longer(c(min, max, mean, sd), names_to = "measure") %>% 
+  ggplot(aes(x=blue, y = value)) + 
+  geom_boxplot(aes(fill = factor(incubation)), ) + 
+  facet_wrap(~channel +measure, scales = "free") +
+  theme_pretty_thesis()
+```
+
+Lets focus on the outliers.
+Just maxRFP:
+
+```{r, fig.height = 10}
+drops %>% 
+  dplyr::filter(channel == "RFP") %>%
+  left_join(blueClusters, by = c("nd_file", "series", "incubation", "roi_id")) %>% 
+  tidyr::pivot_longer(c(min, max, mean, sd), names_to = "measure") %>% 
+  ggplot(aes(x=blue, y = value)) + 
+  geom_boxplot() + 
+  facet_wrap(measure~incubation, scales = "free",ncol = 3) +
+  theme_pretty_thesis()
+
+```
+
+There doesn't seem to change much over the course of 30 minutes incubation.
+
+Intact bacteria cells within droplets should be characterized by an extremely high maximum RFP signal, higher standard deviation and ideally belong to the mTq group.
+
+How many outliers are there?
+
+```{r, fig.width=9.31, fig.height=3.39}
+drops %>% 
+  # dplyr::filter(channel == "RFP") %>% 
+  left_join(blueClusters, by = c("nd_file", "series", "incubation", "roi_id")) %>% 
+  ggplot(aes(x = mean, y = max)) + 
+  geom_point(aes(color = blue), alpha = 0.2) + 
+  facet_wrap(~channel, scales = "free") + 
+  theme_pretty_thesis() + 
+  # scale_color_brewer(type = "qual") + 
+  scale_color_manual(values = c("mTurquoise" = "cyan3", "Atto488" = "darkseagreen"), labels =c("Atto488", "mTurquoise")) +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) + 
+  labs(title = "Mean and maximum signal of freely diffusing dye (CFP, GFP) vs. fluorescent bacteria (RFP) in droplets",
+       x = "Mean intensity",
+       y = "Maximum intensity",
+       color = "CFP cluster") +
+  theme(legend.position = c(0,1), legend.justification = c(0,1))
+```
+
+
+```{r, eval=FALSE}
+ggsave("output/plots/04_phage_droplet_diffusing_dye.png", width = 9.31, height = 3.39, dpi = 300)
+```
+
+With the fluorescent molecules encapsulated withing bacteria floating around in a droplet, the maximum intensity is much less related to the average intensity, compared to freely diffusing dye.
+
+I will classify higher outliers using the formula > Q3 + (1.5 * IQR).
+Calculate red max outliers:
+
+```{r}
+rfpOutliers <- drops %>% 
+  dplyr::filter(channel == "RFP") %>% 
+  dplyr::group_by(nd_file, series, incubation) %>%
+  dplyr::mutate("rfp_max_out" = case_when(max > quantile(max, 0.75) + 1.5 * IQR(max) ~ TRUE,
+                                              .default = FALSE),
+                "rfp_sd_out" = case_when(sd > quantile(sd, 0.75) + 1.5 * IQR(sd) ~ TRUE,
+                                              .default = FALSE)) %>% 
+  dplyr::select(nd_file, series, incubation, roi_id, rfp_max_out, rfp_sd_out)
+
+# add this information to data
+drops %>% 
+  left_join(rfpOutliers, by = c("nd_file", "series", "incubation", "roi_id")) %>% 
+  left_join(blueClusters, by = c("nd_file", "series", "incubation", "roi_id")) %>% 
+  group_by(nd_file, incubation, blue) %>% 
+  summarise(n_outliers = sum(rfp_max_out))
+```
+
+Caution: I choose a different cell-call threshold in each (file, series, incubation).
+Maybe this is not good.
+New approach: pick global threshold to call "cell" if a droplets exhibits a maximum RFP signal exceeding the threshold.
+To find a good threshold, investigate the histogram:
+
+```{r}
+drops %>% 
+  filter(channel == "RFP") %>% 
+  ggplot(aes(x = max)) + 
+  geom_histogram(bins = 100) + 
+  facet_wrap(~incubation, ncol = 1) + 
+  theme_pretty_thesis()+
+  xlim(c(0, 1000))
+```
+
+It seems the range of maximum intensities is quite large...
+Investigate lower values
+
+
+```{r, fig.width=4.57, fig.height=3.39}
+p1 <- drops %>% 
+  filter(channel == "RFP") %>% 
+  dplyr::mutate(call_cell = ifelse(max > 450, TRUE, FALSE)) %>% 
+  ggplot(aes(x = max)) + 
+  geom_histogram(aes(fill = call_cell), bins = 100, position = "stack") + 
+  # facet_wrap(~incubation, ncol = 1) + 
+  scale_fill_manual(values = c("#999999", "#F21A00"), labels = c("diffused mCherry", "intact cell")) + 
+  theme_pretty_thesis() + 
+  guides(fill = guide_legend(title = NULL, direction = "horizontal"))+
+  labs(x = "RFP maximum intensity",
+       y = "Number of droplets",
+       tag = "A",
+       title = "Fluorescent cells in droplet result in high maximum intensity") + 
+  theme(axis.title.x = element_blank(),
+        plot.margin = margin(b = 0.2, unit = "cm"),
+        legend.position = c(1,1), legend.justification = c(1,1))
+
+p2 <- drops %>% 
+  filter(channel == "RFP") %>% 
+  dplyr::mutate(call_cell = ifelse(max > 450, TRUE, FALSE)) %>% 
+  ggplot(aes(x = max)) + 
+  geom_histogram(aes(fill = call_cell), bins = 100, show.legend = FALSE) + 
+  geom_vline(xintercept = 450, linetype = "dashed", linewidth = 0.5) + 
+  scale_fill_manual(values = c("#999999", "#F21A00")) + 
+  theme_pretty_thesis() + 
+  labs(x = "Maximum RFP intensity in a droplet",
+       y = "Number of droplets",
+       tag = "B",
+       title = "...assume intact cell if maximum intensity is larger than 450")  +
+  xlim(c(0, 1000))
+
+p1 / p2
+```
+
+
+```{r, eval=FALSE}
+ggsave("output/plots/04_phage_droplet_call_intact_cells.png", width = 4.57, height = 3.39, dpi = 300)
+```
+
+
+
+
+450 seems like a good cutoff.
+What would the outlier formula give me?
+
+```{r}
+x <- drops %>% 
+  filter(channel == "RFP") %>% 
+  pull(max)
+quantile(x, 0.75) + 1.5*IQR(x)
+```
+
+Okay this cutoff is way larger...
+
+```{r}
+threshold <- 450
+
+d <- drops %>% 
+  dplyr::filter(channel == "RFP") %>% 
+  left_join(blueClusters, by = c("nd_file", "series", "incubation", "roi_id")) %>% 
+  mutate("intact_cell" = ifelse(max > threshold, TRUE, FALSE))
+```
+
+Inspect ROIS where "intact cell" was called manually for incubation = 02:10 series 08
+
+```{r}
+d %>% 
+  dplyr::filter(incubation == hms::hms(hours = 2, minutes = 10),
+                series == "series 08",
+                intact_cell == TRUE) %>% 
+  dplyr::arrange(roi_id) %>% 
+  View()
+```
+
+Looks good! Droplets containing cells show up...
+
+Now, compare between Atto488 and mTq group...
+
+
+```{r}
+d %>% 
+  group_by(nd_file, incubation, blue) %>% 
+  summarise(n_intact = sum(intact_cell),
+            n_drops = n(),
+            percentage_intact = n_intact/n_drops*100) %>% 
+  group_by(nd_file, incubation)
+```
+
+Plot against incubation time:
+
+```{r, fig.width=4.57, fig.height=3.39}
+d %>% 
+  group_by(nd_file, incubation, blue) %>% 
+  summarise(n_intact = sum(intact_cell),
+            n_drops = n(),
+            percentage_intact = n_intact/n_drops*100,
+            .groups = "drop") %>% 
+  group_by(nd_file, incubation) %>% 
+  dplyr::mutate(incubation = stringr::str_sub(incubation, 1, 5)) %>% 
+  ggplot(aes(x = incubation, y = percentage_intact, fill = blue)) + 
+  geom_col(position = position_dodge(width = 0.6), alpha = 1, width = 0.5) +
+  scale_fill_manual(values = c("darkseagreen", "cyan3"), labels = c("Atto488 (T7 phage)", "mTurquoise (control)"))+
+  theme_pretty_thesis() + 
+  theme(legend.position = "bottom", legend.box.margin = margin())  +
+  guides(fill = guide_legend(title = NULL, direction = "horizontal")) + 
+  labs(x = "Incubation time [h]",
+       y = "Percentage of droplets containing intact cell",
+       # title = "Phage droplets contain fewer intact bacteria cells after incubation, compared to control group",
+       title = "Compared to the mTurqoise control group, phage droplets contain \nfewer intact bacteria",
+       fill = "Droplet content")
+
+```
+
+
+
+```{r, eval=FALSE}
+ggsave("output/plots/04_phage_droplet_results.png", width = 4.57, height = 3.39, dpi = 300)
+```
+
+
+
+
+Lets compare the minimum intensities.
+Motivation: distinguish droplets containing lysed from droplets that didn't contain any cell at all.
+
+```{r}
+d %>% 
+  ggplot(aes(x = blue, y = min, fill = intact_cell)) +
+  geom_boxplot() + 
+  ylim(c(0,250))
+```
+
+
+
+```{r, fig.width=4.57, fig.height=3.39}
+d %>% 
+  group_by(nd_file, incubation, blue) %>% 
+  summarise(n_intact = sum(intact_cell),
+            n_drops = n(),
+            percentage_intact = n_intact/n_drops*100,
+            .groups = "drop") %>% 
+  group_by(nd_file, incubation) %>% 
+  dplyr::mutate(incubation = stringr::str_sub(incubation, 1, 5)) %>% 
+  ggplot(aes(x = incubation, y = percentage_intact, fill = blue)) + 
+  geom_col(position = position_dodge(width = 0.6), alpha = 1, width = 0.5) +
+  scale_fill_manual(values = c("darkseagreen", "cyan3"), labels = c("Atto488 (T7 phage)", "mTurquoise (control)"))+
+  theme_pretty_thesis() + 
+  theme(legend.position = "bottom", legend.box.margin = margin())  +
+  guides(fill = guide_legend(title = NULL, direction = "horizontal")) + 
+  labs(x = "Incubation time [h]",
+       y = "Percentage of droplets containing intact cell",
+       # title = "Phage droplets contain fewer intact bacteria cells after incubation, compared to control group",
+       title = "Compared to the mTurqoise control group, phage droplets contain \nfewer intact bacteria",
+       fill = "Droplet content")
+
+```
+
+
+
+
+
+
+  # filter(red > quantile(red, 0.025) & red < quantile(red, 0.975)) %>%
+
+
+
+
+
+
+
+
+
+Calculate statistics based on grouping variables:
+
+```{r}
+dwide %>% 
+  dplyr::group_by(incubation, blue) %>% 
+  dplyr::summarise(across(starts_with("max"), mean),
+                   across(starts_with("sd"), mean),
+                   across(starts_with("min"), mean),
+                   across(starts_with("mean"), mean)) %>% 
+  tidyr::pivot_longer(c(-incubation, -blue)) %>% 
+  dplyr::mutate("channel" = stringr::str_extract(name, "[A-Z]+$"),
+                "measure" = stringr::str_extract(name, "[a-z]+")) %>% 
+  ggplot(aes(x = blue, y = value))+
+  scale_color_brewer(type = "qual") +
+  geom_point(aes(shape = factor(incubation))) + facet_grid(channel~measure, scales = "free") + 
+  theme_pretty_thesis()
+```
+
+
+I basically want:
+- average RFP sd cluster 1 vs 2
+- average max RFP cluster 1 vs 2
+- histogram max red intensity cluster 1 vs 2
+
+```{r}
+dwide %>%
+  select(nd_file, incubation, series, roi_id, blue, max_RFP, sd_RFP) %>% 
+  tidyr::pivot_longer(c(max_RFP, sd_RFP), names_to = "measure") %>% 
+  ggplot(aes(fill = blue,x = value)) + 
+  geom_histogram(alpha = 0.3, position = "identity", bins = 100)+ 
+  facet_wrap(~measure, scales ="free")
+```
+
+
+
+```{r}
+dwide %>% 
+  ggplot(aes(x = max_RFP)) + 
+  geom_histogram(aes(fill = blue), position = "identity", alpha = 0.5, bins = 100) + 
+  xlim(c(0, 500)) + 
+  facet_wrap(~incubation)
+```
+o
+
+
+
+
+What do I actually want?
+
+- higher max RFP (and sd RFP) in blue droplets (-> intact cells)
+- decrease in max RFP in green droplets with time
+- highest maxRFP in false droplets (no blue, no green)
+- Is min(max_rfp)|blue larger than max(max_rfp)|not blue
+- Is # blue drops approximately = #green drops?
+
+
+
+Consequences:
+
+- lysed and intact cell droplets separable by RFP threshold
+- sort droplets using 
+
+
+From what it looks, it would not be possible to sort these droplets using the FADS, because the intensities overlap too much.
+However, the fluorescence intensities detected by the PMTs in the FADS might look different from those captured by the Nikon.
+Also, maybe the incubation time was too long, considering that under optimal conditions the T7 replication time is under 20 minutes.
+In an actual directed evolution experiment, one might specifically screen for fast-reacting phages and therefore incubate for only 20 minutes or less.
+
+The results of this experiment support the feasibility of the theoretical concept of phage directed evolution, however, the role of the cell extract w.r.t. E. coli proliferation remains to be investigated.
+It is possible that the cell extract might need some optimization in order to be more gentle with the cells and still allow in-vitro TXTL.
+
+
+
+
+Summarize dwide:
+
+```{r}
+drops %>% 
+  group_by(nd_file, incubation, series, channel) %>% 
+  summarise(across(c(mean, sd, min, max), list(mean = mean, sd = sd)))
+```
+

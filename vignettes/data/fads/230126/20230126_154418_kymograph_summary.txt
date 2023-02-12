@@ -1,0 +1,15 @@
+file	20230126_154418_kymograph
+directory	C:\Users\ga84quz\offline_data\20230126\image_analysis_2
+scale	2.3
+minPeakHeight	90
+minDropletDiameter	25
+maxDropletDiameter	Inf
+groupDist	1
+maxGroupSize	2
+n_droplets	118
+diameter_mean	37.3986735445836
+diameter_sd	8.10358652021714
+diameter_median	34.7826086956522
+intensity_mean	13613.5084745763
+intensity_sd	2798.88912562367
+intensity_median	12738

@@ -30,6 +30,16 @@ You can install the development version of picoinjector from [GitHub](https://gi
 devtools::install_github("fynnwi/picoinjector")
 ```
 
+Run on LRZ AI systems:
+
+```{r, eval=FALSE}
+update.packages(ask = FALSE)
+install.packages(c("hexbin", "pkgdown", "patchwork"))
+devtools::install()
+```
+
+
+
 ## Content
 
 

@@ -1,0 +1,10 @@
+Signal_0	0.4467
+Signal_10	0.5177
+Signal_1	0.4211
+Signal_2	0.64016
+Signal_3	0.50494
+Signal_5	0.53983
+Signal_6	0.73815
+Signal_7	0.84582
+Signal_8	0.42694
+Signal_9	0.7227

@@ -1,0 +1,45 @@
+---
+title: "Pressures"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Pressures}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(picoinjector)
+library(ggplot2)
+```
+
+
+Laplace pressure:
+$$\Delta p = \frac{2\gamma}{R}$$
+
+Assume water-oil interface with $\gamma = 35.26 \, \mathrm{mN/m}$:
+
+```{r}
+gamma <- 35.26e-3
+```
+
+Calculate Laplace pressure for curvature radii of 5-30 µm:
+
+```{r}
+tibble::tibble("radius" = seq(5, 30, 0.5) * 1e-6) %>% 
+  dplyr::mutate("laplace_pressure" = (radius^-1)*2*gamma) %>% 
+  ggplot(aes(x = radius*1e6, y = laplace_pressure)) + 
+  geom_line() + 
+  theme_pretty() + 
+  labs(y = "Laplace pressure [Pa]",
+       x = "Radius of curvature [um]")
+```
+
+
+

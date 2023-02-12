@@ -1,0 +1,6 @@
+n_green_droplet	137520
+n_red_droplet	58535
+n_false_droplets	966
+n_injected_droplets	57568
+occupancy_mean	0.41862
+occupancy_sd	0.49335

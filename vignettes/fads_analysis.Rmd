@@ -10,7 +10,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  eva = FALSE
 )
 ```
 
@@ -19,6 +20,7 @@ library(picoinjector)
 library(dplyr)
 library(readr)
 library(ggplot2)
+library(wesanderson)
 ```
 
 
@@ -103,9 +105,288 @@ fads_reports_for_all("~/nyancat_tsv", "output/fads_data_exploration/")
 
 
 
+## Picoinjecting cells experiment (2022-12-16)
+
+Convert droplet occupancy into volume
+```{r}
+occupancy_to_picoliter <- function(occupancy, knownConcentration = 1e8) {
+  # concentration in cells/mL
+  return(occupancy/knownConcentration*1e9)
+}
+```
+
+Get the concentration determined via cell counting:
+
+```{r}
+counts <- readr::read_csv("data/fads/221216/cellcounts.csv", show_col_types = F)
+counts
+```
+
+
+```{r}
+concentration <- mean(counts$Count)/0.5e-3 # cells/mL
+# account for 10x dilution!
+concentration <- concentration*10
+concentration
+```
+
+Concentration is ~ 9e7, that is 90 mil cells/mL, or 0.09 cells/pl
 
 
 
 
+```{r}
+occupancies <- readr::read_tsv("data/fads/221216/occupancy_redmph_0_0085.txt", col_names = c("file", "occupancy"), show_col_types = F)
+flowrates <- readr::read_tsv("data/fads/221216/flowrates.txt", show_col_types = F)
+```
+
+
+```{r}
+flowrates %>% 
+  dplyr::left_join(occupancies, by = "file") %>% 
+  dplyr::mutate("volume" = occupancy_to_picoliter(occupancy, concentration)) %>% 
+  dplyr::filter(!file %in% paste0("Signal_", 4)) %>% 
+  ggplot(aes(x = p_water, y = p_oil)) + 
+  # geom_text(aes(label = file), position = position_jitter(height = 4, width = 0)) + 
+  geom_point(aes(size = volume, color = volume, shape = factor(q_emulsion))) + 
+  theme_pretty_thesis()
+```
+
+
+Estimate oil flow rate from pressure using Hagen-Poisseuille law and estimated hydraulic resistance..
+
+$$R_h =\frac{12 \eta L}{1-0.63(h/w)} \frac{1}{h^3w}$$
+For the channel dimensions I use L = 0.5 mm, h = 30 µm, w = 20 µm (approximate length of the most confined channel segment)
+```{r}
+r_h <-  12 * 4.1e-3 * 0.2e-3 /((1-0.63*(30e-6 / 20e-6))*(30e-6)^3 * 20e-6)
+flowrates <- flowrates %>% 
+  dplyr::mutate("q_oil_est" = p_oil * 1e2/r_h * 3.6e12) # in ml/h
+```
+
+```{r, fig.width = 4.57, fig.height=3.39}
+pal <- wes_palette("Zissou1", 100, type = "continuous")
+
+flowrates %>% 
+  dplyr::left_join(occupancies, by = "file") %>% 
+  dplyr::mutate("volume" = occupancy_to_picoliter(occupancy, concentration)) %>% 
+  dplyr::filter(!file %in% paste0("Signal_", 4)) %>% 
+  ggplot(aes(x = p_water/(q_oil_est+q_emulsion), y = volume)) + 
+  geom_smooth(method = "lm", formula = y~x, linetype = "dashed", color = "black", linewidth = 0.5, se = FALSE) +  
+  geom_point(aes(fill = factor(q_emulsion)), shape = 21, size = 4) + 
+  theme_pretty_thesis() + 
+  scale_fill_manual(values = c("#3B9AB2", "#EBCC2A")) + 
+  labs(x = expression("Relative injection pressure: "*p["injection"]/(Q["oil"] + Q["emulsion"])*" [mbar/µL/h]"),
+       y = "Injected volume [pL]",
+       fill = "Emulsion flow rate [µl/h]",
+       title = "Picoinjected volume vs. relative injection pressure")+
+  theme_pretty_thesis()
+```
+
+```{r, eval=FALSE, fig.width=4.57, fig.height=3.39}
+ggsave("output/plots/04_injecting_cells_results.png", width = 4.57, height = 3.39, dpi = 300)
+```
+
+
+
+### Plot occupancies
+
+Load all data
+
+```{r}
+files <- list.files("data/fads/221216/occupancies", full.names = TRUE)
+occu <- tibble::tibble()
+for (f in files) {
+  occu <- occu %>% 
+    dplyr::bind_rows(
+      readr::read_table(f, col_names = c("n_cells", "n_droplets"), show_col_types = F) %>% 
+        dplyr::mutate("file" = stringr::str_extract(basename(f), "Signal_\\d+"))
+    )
+}
+```
+
+
+
+```{r}
+occu %>% 
+  ggplot(aes(x = n_cells, y = n_droplets)) + 
+  geom_line() + 
+  facet_wrap(~ file, scales = "free")
+```
+
+
+```{r}
+occu <- occu %>% 
+  group_by(file) %>% 
+  mutate("percentage" = n_droplets/sum(n_droplets)) %>% 
+  left_join(occupancies, by = "file") %>% 
+  mutate("poisson" = dpois(n_cells, occupancy))
+occu
+```
+
+
+
+```{r, fig.width=9.31, fig.height=3.39}
+occu %>% 
+  tidyr::pivot_longer(c(percentage, poisson)) %>% 
+  mutate("file" = factor(file, levels = paste0("Signal_", seq(0,10)))) %>% 
+  ggplot(aes(x = n_cells, y = value)) + 
+  geom_line(aes(color = name), linewidth = 0.3) + 
+  geom_point(aes(color = name, shape = name)) + 
+  facet_wrap(~file, scales = "free", nrow = 2) + 
+  theme_pretty_thesis() + 
+  scale_color_manual(values = c("#0065bd", "black"), labels = c("Acquired data", "Poisson distribution")) +
+  scale_shape_manual(values = c(1,2), labels = c("Acquired data", "Poisson distribution")) +
+
+  labs(x = "Droplet occupancy",
+       y = "Fraction of total population") + 
+  # guides(color = guide_legend(title = NULL)) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.box.margin = margin(), legend.title = element_blank(), legend.key.width = unit(0.5, "cm"))
+```
+
+
+```{r, eval=FALSE, fig.width=4.57, fig.height=3.39}
+ggsave("output/plots/04_injecting_cells_poisson.png", width = 9.31, height = 3.39, dpi = 300)
+```
+
+
+
+
+```{r}
+tidyr::crossing("k" = seq(0,10),
+                "lambda" = c(0.05, 0.25, 1, 2, 5, 20))
+  dplyr::mutate("p" = dpois(k, lambda)) %>% 
+  ggplot(aes(x = k, y = p)) + 
+  geom_line(aes(color = factor(lambda)), linetype = "dashed") + 
+  geom_point(aes(fill = factor(lambda)), shape = 22) + 
+  scale_x_continuous(breaks = seq(0,10)) + 
+  theme_pretty() + 
+  labs(title = "Poisson distribution for different values of lambda",
+       y = "p(k, lambda)",
+       x = "k",
+       color = "lambda",
+       fill = "lambda")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Picoinjecting Atto488 into resorufin droplets (2022-11-17)
+
+Combine all available data into one tibble:
+
+```{r}
+greenAll <- fads_read_all("data/fads/221117/", "_barcode.txt$")
+redAll <- fads_read_all("data/fads/221117/", "_injected.txt$")
+```
+
+
+
+```{r}
+greenAll %>% 
+  dplyr::filter(injected == 1,
+                width < 0.001) %>% 
+  ggplot(aes(x = width, fill = file)) + 
+  geom_histogram(bins = 50, alpha = 0.5, position = "identity") + 
+  theme_pretty_thesis() + 
+  labs(x = "Droplet width [ms]",
+       y = "Droplets",
+       fille = "File")
+```
+
+
+```{r}
+greenAll %>% 
+  dplyr::filter(width < 0.001) %>% 
+  ggplot(aes(x = width, fill = factor(injected))) + 
+  geom_histogram(bins  =100, alpha = 0.5, position = "identity")  +
+  theme_pretty_thesis() + 
+  facet_wrap(~ file) + 
+  labs(title = "Green droplet widths",
+       x = "Width [ms]",
+       y = "Droplets",
+       fill = "Injected")
+```
+
+False droplets can be distinguished by their width:
+
+```{r}
+redAll %>% 
+  dplyr::filter(width < 0.0015) %>% 
+  ggplot(aes(x = width, fill = factor(is_false_drop))) + 
+  geom_histogram(bins  =100, alpha = 0.5, position = "identity")  +
+  theme_pretty_thesis() + 
+  facet_wrap(~ file)
+```
+
+Another interesting observation that confirms the quantitative accuracy of laser-based droplet analysis is the fact that while injected droplets increase in size and thus generate a wider signal in the PMT, the signal power, i.e. the area under a signal peak stays the same.
+Therefore, the signal arriving in a PMT can be interpreted as a direct measure of the amount of dye inside a droplet.
+
+
+```{r}
+greenAll %>% 
+  dplyr::filter(area < 3e-5) %>% 
+  ggplot(aes(x = area, fill = factor(injected))) + 
+  geom_histogram(bins  =100, alpha = 0.5, position = "identity")  +
+  theme_pretty_thesis() + 
+  facet_wrap(~ file) + 
+  labs(title = "Green droplets signal area",
+       x = "Signal area [V*s]",
+       y = "Number of droplets",
+       fill = "Injected")
+```
+
+
+Calculate some averages:
+
+```{r}
+greenAll %>% 
+  dplyr::group_by(file) %>% 
+  dplyr::summarise("width_mean" = mean(width),
+                   "width_sd" = sd(width),
+                   "area_mean" = mean(area),
+                   "area_sd" = sd(area),
+                   "injected_mean" = mean(injected))
+```
+
+
+```{r}
+greenAll %>% 
+  dplyr::group_by(file, injected) %>% 
+  dplyr::summarise("width_mean" = mean(width),
+                   "width_sd" = sd(width),
+                   "area_mean" = mean(area),
+                   "area_sd" = sd(area),
+                   "injected_mean" = mean(injected))
+```
+
+
+
+
+Can I somehow translate width into volume?
+
+Yes: by comparting width of non-injected droplets.
+But what if these are not injected due to being too small?
+
+
+
+
+
+Really cool: The droplet width changes due to picoinjection, but not the area of the generated signal, emphasizing how quantitative this method is.
+It seems it can be used to really measure the _amount_ of dye inside a droplet. (See Signal5)
 
 

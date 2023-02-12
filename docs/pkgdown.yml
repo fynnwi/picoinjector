@@ -3,12 +3,15 @@ pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
   comsol: comsol.html
+  droplet_image_analysis: droplet_image_analysis.html
   electrical_engineering: electrical_engineering.html
   fads_analysis: fads_analysis.html
+  fads_picoinjector_characterization: fads_picoinjector_characterization.html
   fluidics: fluidics.html
   logfiles: logfiles.html
+  pressures: pressures.html
   spincurves: spincurves.html
   thesis_plots: thesis_plots.html
   volumes: volumes.html
-last_built: 2023-01-13T23:23Z
+last_built: 2023-02-08T20:17Z
 

@@ -1,0 +1,1327 @@
+---
+title: "FADS-based Picoinjector Characterization"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{FADS-based Picoinjector Characterization}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(picoinjector)
+library(dplyr)
+library(ggplot2)
+library(wesanderson)
+library(patchwork)
+```
+
+## Picoinjecting black ink and recording videos at 4000 fps
+
+Black ink was injected into ~ 30 µm droplets and videos were recorded using a high-speed camera.
+The footage was processed using ImageJ and MATLAB in order to detect droplets and determine their size.
+The sizes of recognized droplets were stored in text files.
+
+Read the data:
+
+```{r}
+files <- list.files("data/fads/221216/ink/", pattern = "_kymograph_droplets.txt$", full.names = TRUE)
+droplets <- tibble::tibble()
+for (f in files) {
+  droplets <- droplets %>% 
+    dplyr::bind_rows(
+      readr::read_table(f, show_col_types = FALSE) %>% 
+        dplyr::mutate("file" = stringr::str_extract(basename(f), "\\d{8}_\\d{6}")) %>% 
+        # normalize intensity by droplet width
+        dplyr::mutate("intensity" = intensity/width)
+    )
+}
+
+# add metadata
+droplets <- droplets %>% 
+  dplyr::left_join(
+    readr::read_table("data/fads/221216/ink/metadata.txt", show_col_types = FALSE),
+    by = "file"
+  )
+```
+
+Now, plot the measured droplet sizes and check if they make sense:
+
+```{r}
+droplets %>% 
+  filter(ac_field == TRUE) %>% 
+  mutate("q_emulsion" = as.factor(q_emulsion),
+         "p_oil" = as.factor(p_oil),
+         "p_water" = as.factor(p_water)) %>% 
+  ggplot(aes(x = width)) + 
+  geom_histogram(aes(fill = p_water), alpha = 0.3, position = "identity") + 
+  facet_grid(p_oil ~ q_emulsion, labeller = label_both, scales = "free") + 
+  theme_pretty_thesis()
+```
+
+
+### Single-file level
+
+Summarize the droplet populations for every file:
+
+```{r}
+dropletSummary <- droplets %>% 
+  dplyr::group_by(file, p_oil, q_emulsion, p_water, ac_field) %>% 
+  dplyr::summarise("mean_diameter" = mean(width),
+                   "median_diameter" = median(width),
+                   "sd_diameter" = sd(width),
+                   "intensity_mean" = mean(intensity),
+                   "intensity_median" = median(intensity),
+                   "intensity_sd" = sd(intensity),
+                   "n_droplets" = dplyr::n())
+dropletSummary
+```
+
+The median diameter of uninjected droplets is 30 µm.
+
+
+```{r}
+dropletSummary %>% 
+  filter(ac_field == TRUE) %>% 
+  ggplot(aes(x = p_water, y=median_diameter)) +
+  geom_point(aes(shape = factor(q_emulsion), color = p_oil), size = 4) + 
+  theme_pretty_thesis()
+```
+
+
+
+
+
+
+Since pressure and flow rate are related linearly in the Hagen-Poisseuille model, I will summarize the two variables into a single ratio p_oil/q_emulsion
+I somehow want to express the droplet velocity in terms of p_oil and q_emulsion.
+For q_emulsion it would be straightforward, but the spacing oil is driven by pressure, which makes the flow rate harder to estimate.
+I will just use the Hagen-Poisseuille law with a hydraulic resistance value from literature to convert pressure into flow rate, and then add it to the emulsion flow rate.
+
+$$R_h =\frac{12 \eta L}{1-0.63(h/w)} \frac{1}{h^3w}$$
+
+For the dynamic viscosity I use that of FC-40 fluorinert oil which according to [this](https://www.matweb.com/search/DataSheet.aspx?MatGUID=2072a809f9ca4d529b1d136660736f81&ckck=1) source is 4.1 mPa s.
+For the channel dimensions I use L = 0.5 mm, h = 30 µm, w = 20 µm (approximate length of the most confined channel segment)
+
+```{r}
+r_h <-  12 * 4.1e-3 * 0.2e-3 /((1-0.63*(30e-6 / 20e-6))*(30e-6)^3 * 20e-6)
+dropletSummary <- dropletSummary %>% 
+  dplyr::mutate("q_oil_est" = p_oil * 1e2/r_h * 3.6e12) # in ml/h
+```
+
+
+Idea: emulsion flow rate negligible compared to spacing oil flow rate, which is usually at least five times larger.
+Therefore, express p_oil and p_injection as a ratio:
+
+```{r}
+get_volume_change <- function(diameter1, diameter0) {
+  return(1/6 * pi * (diameter1^3 - diameter0^3))
+}
+pal <- wes_palette("Zissou1", 100, type = "continuous")
+dropletSummary %>% 
+  filter(ac_field == TRUE) %>% 
+  mutate("water_oil_ratio" = p_water/p_oil,
+         "injected_volume" = sapply(median_diameter * 1e-6, get_volume_change, 30e-6) * 1e15) %>% 
+  ggplot(aes(x = water_oil_ratio, y = injected_volume)) + 
+  scale_fill_gradientn(colours = pal) + 
+  geom_smooth(method = "lm", formula = y~x, linetype = "dashed", color = "black", linewidth = 0.5, se = FALSE) +  
+  # geom_hline(yintercept = 30, linetype = "dashed") + 
+  geom_point(aes(fill = q_emulsion), shape = 21, size = 4) + 
+  theme_pretty_thesis() + 
+  labs(x = expression(p["injection"]/p["oil"]),
+       y = "Injected volume [pL]",
+       fill = "Emulsion flow rate [µl/h]",
+       title = "Picoinjected volumes are largest at low throughput and relatively high injection pressure") + 
+  ylim(c(0,15)) + 
+  guides(fill = guide_legend(title.position = "top", direction = "horizontal"))
+```
+
+Use the oil flow rate estimated from the hydraulic resistance and pressure:
+
+```{r}
+p <- dropletSummary %>% 
+  filter(ac_field == TRUE) %>% 
+  mutate("water_oil_ratio" = p_water/(q_emulsion+q_oil_est),
+         "injected_volume" = sapply(median_diameter * 1e-6, get_volume_change, 30e-6) * 1e15) %>% 
+  ggplot(aes(x = water_oil_ratio, y = injected_volume)) + 
+  # scale_fill_gradientn(colours = pal) + 
+  scale_fill_viridis_d(direction = -1, option = "G")+
+  geom_smooth(method = "lm", formula = y~x, linetype = "dashed", color = "black", linewidth = 0.5, se = FALSE) +  
+  # geom_hline(yintercept = 30, linetype = "dashed") + 
+  geom_point(aes(fill = factor(q_emulsion)), shape = 21, size = 4) + 
+  theme_pretty_thesis() + 
+  labs(x = expression("Relative injection pressure: "*p["injection"]/(Q["oil"] + Q["emulsion"])*" [mbar/µL/h]"),
+       y = "Injected volume [pL]",
+       fill = "Emulsion flow rate [µl/h]",
+       title = "Picoinjected volumes are largest at low throughput and high relative \ninjection pressure",
+       tag = "A") + 
+  ylim(c(0,15)) + 
+  guides(fill = guide_legend(title.position = "top", direction = "horizontal"))
+p
+```
+
+
+
+
+
+
+Lets investigate the grey intensities.
+
+```{r}
+p2 <- dropletSummary %>% 
+  filter(ac_field == TRUE) %>% 
+  mutate("water_oil_ratio" = p_water/p_oil,
+         "injected_volume" = sapply(median_diameter * 1e-6, get_volume_change, 30e-6) * 1e15) %>% 
+  ggplot(aes(x = injected_volume, y = intensity_median)) + 
+  geom_smooth(method = "lm", formula = y~x, linetype = "dashed", color = "black", linewidth = 0.5, se = FALSE) +  
+  # geom_hline(yintercept = 30, linetype = "dashed") + 
+  geom_point(aes(fill = intensity_median), shape = 21, size = 4) + 
+  # scale_fill_viridis_c() +
+  # scale_fill_gradientn(colours = pal) +
+  # scale_fill_distiller(type = "seq",
+  #                       palette = "Greys")+
+  scale_fill_viridis_c(option = "E")+
+  theme_pretty_thesis() + 
+  labs(x = "Injected volume [pL]",
+       y = "Median droplet gray value",
+       fill = "Median droplet intensity",
+       title = "Droplets transmit less light when picoinjected with black ink",
+       tag = "B") + 
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", label.hjust = 0.5,
+                               barwidth = 1.2, default.unit = "in"))+
+  theme(legend.position = c(1,1),
+        legend.justification = c(1,1))
+  # guides(fill = 
+  #          guide_legend(title.position = "top", direction= "horizontal", ))
+p2
+```
+
+
+Patchwork
+
+```{r, eval=FALSE, fig.width=9.1, fig.height=3.39}
+p + theme(plot.margin = margin(r = 0.5, unit = "cm"))+p2
+ggsave("output/plots/04_injecting_ink_results.png", width = 9.31, height = 3.39, dpi = 300)
+```
+
+
+Information I can take from this plot:
+
+- with larger injection volume, more ink is injected, the pixel intensity decreases
+- high variability
+
+
+
+```{r, eval=FALSE, fig.width=6, fig.height=10}
+# library(ggridges)
+# 
+# droplets %>% 
+#   group_by(file) %>%
+#   filter(width > quantile(width, 0.1) & width < quantile(width, 0.9)) %>% # remove outliers
+#   ungroup() %>% 
+#   ggplot(aes(x = width, y = file)) + 
+#   scale_fill_gradientn(colours = pal) +
+#   geom_vline(xintercept = 30) + 
+#   geom_density_ridges(aes(fill = p_water/p_oil)) + 
+#   theme_pretty_thesis() + facet_wrap(~factor(q_emulsion), ncol = 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+## Picoinjecting Atto488 into resorufin droplets (2023-01-26)
+
+In order to characterize the picoinjector operating range, 30 µm resorufin droplets were injected with Att488 dye.
+Fluorescence activities of the droplets were measured during operation using the FADS-setup.
+Waveform files corresponding to the signals arriving at the two PMT tubes were recorded and analyzed using MATLAB code, and TSV files containing information of the droplets identified in the signal were generated.
+These will be analysed in this vignette.
+
+### Single-droplet level
+
+Load the TSV data. 
+Each row corresponds to a droplet.
+Droplet populations resulting from 34 different parameter combinations were collected.
+I exclude file `Signal_29` because picoinjection didn't work well for those parameters.
+
+```{r}
+greenAll <- fads_read_all("data/fads/230126/", "_barcode.txt$") %>% 
+  dplyr::filter(file != "Signal_29") 
+redAll <- fads_read_all("data/fads/230126/", "_injected.txt$") %>% 
+  dplyr::filter(file != "Signal_29") 
+greenAll
+```
+
+The information for which times the AC field was on/off, as well as pressures and flow rates are stored in a metadata text file:
+
+```{r}
+metadata <- readr::read_table("data/fads/230126/metadata.txt", show_col_types = FALSE)
+metadata
+```
+
+Convert the generator signal voltage to the amplified peak-to-peak voltage applied to the electrodes.
+For that I use the linear regression fit calculated in `vignette("electrical_engineering")`.
+
+```{r}
+metadata <- metadata %>% 
+  dplyr::mutate("ac_v_pp" = ac_v_pp * 52.08425) %>% 
+  # also remove the 'video' and 'laser_focus' column
+  dplyr::select(c(-video, -laser_focus))
+```
+
+Using the information on flow rates as well as the channel dimensions, I can furthermore estimate the droplet velocity at which the droplets pass the injection junction by simply dividing the total flow rate (i.e. emulsion + spacing oil) by the known microchannel cross section.
+I convert the velocity unit into m/s using 1 µl = 1e9 µm³.
+Note, that this underestimates the total flowrate, because when picoinjecting there is also some flow coming through the injection channel that contributes to the droplet's velocity.
+
+```{r}
+metadata <- metadata %>% 
+  dplyr::mutate("velocity" = ((q_emulsion+q_oil) * 1e9/3600)/(20*30)*1e-6) # m/s
+```
+
+
+
+Now I want to join the metadata to the signal data. 
+
+```{r}
+grn <- greenAll %>% 
+  left_join(metadata, by = "file") %>% 
+  dplyr::mutate("ac_field" = case_when(t_max < t_off ~ TRUE,
+                                             .default = FALSE))
+red <- redAll %>% 
+  left_join(metadata, by = "file") %>% 
+  dplyr::mutate("ac_field" = case_when(t_max < t_off ~ TRUE,
+                                             .default = FALSE))
+```
+
+Furthermore, by knowing the droplet velocity, I can go transform the signal width, which is a period of time, into an actual spatial width in units of length.
+To that end, I have to multiply the peak width by the droplet velocity to get the spatial length of the droplet.
+
+```{r}
+grn <- grn %>% 
+  dplyr::mutate("width_um" = width * velocity * 1e6)
+red <- red %>% 
+  dplyr::mutate("width_um" = width * velocity * 1e6)
+grn %>% 
+  dplyr::select(file, q_emulsion, q_oil, p_water, ac_field, width , width_um)
+```
+
+Obviously, these numbers are too large to represent droplet diameters.
+One must account for the fact that droplets are still squeezed in the microchannel, and appear therefore much longer.
+
+We can convert the measured squeezed squeezed length into an equivalent spherical droplet diameter:
+In the confined picoinjection junction, 30µm droplets are squeezed into an elongated shape that can be approximated by an elliptical cylinder with half-ellipsoids on each end.
+The volume of an ellipsoid with semi-axes $a, b, c$ is
+$$V_e = \frac{4}{3} \pi a b c.$$
+
+The volume of an elliptical cylinder with semi-axes $a, b$ and length $L$ computes as
+$$V_c = \pi a b L.$$
+
+The droplet volume can than be approximated by $V_d = V_e + V_c$:
+$$V_d = V_e + V_c = \frac{4}{3} \pi a b c + \pi a b L.$$
+Lets say $c$ is the ellipsoid radius along the axis in direction of the channel, $a$ the radius in the lateral direction (i.e. half of the channel width), and $b$ the radius in z-direction (i.e. half of the channel height).
+The signal measured by the PMT then corresponds to the full length of the droplet $L+2c$.
+
+Assuming $c = \frac{1}{2}(a+b)$ and rearranging for $V_d$ yields:
+$$V_d = \pi a b \left( \frac{2}{3} (a+b) + L \right).$$
+
+The radius of the droplet in a perfectly spherical shape can then be found as
+$$r = \left(\frac{3}{4} \frac{V_d}{\pi}\right)^{1/3}.$$
+
+```{r}
+squeezed_length_to_diameter <- function(signalWidth, channelWidth, channelHeight) {
+  # if the droplet is not squeezed, l is already the diamteer of a spheere
+  a <- channelWidth/2
+  b <- channelHeight/2
+  if (signalWidth < a+b) {
+    return(signalWidth)
+  }
+  # else...
+  # get volume of the corresponding half sphere-cylinder
+  vSphere = pi * a * b * (2/3*(a+b) + signalWidth-a-b)
+  # return diameter of a same-volume sphere
+  return(2*(3/4 * vSphere/pi)^(1/3))
+}
+
+# inverse function...
+diameter_to_squeezed_length <- function(diameter, channelWidth, channelHeight) {
+  # if the droplet is not squeezed, l is already the diameter of a spheere
+  a <- channelWidth/2
+  b <- channelHeight/2
+  if (diameter < a+b) {
+    return(diameter)
+  }
+  # else...
+  # get volume of the corresponding half sphere-cylinder
+  vsphere = 4/3 * pi *(diameter/2)^3
+  signalWidth <- vsphere/(pi*a*b) + 1/3 * (a+b)
+  return(signalWidth)
+}
+```
+
+Make a plot to see if above functions work as expected: 
+
+```{r}
+tibble::tibble("signal" = seq(10,100)) %>% 
+  dplyr::mutate("diameter" = sapply(signal, squeezed_length_to_diameter, 20, 30)) %>% 
+  ggplot(aes(x = signal, y = diameter)) + 
+  geom_line() + 
+  theme_pretty() +
+  labs(title = "Droplet diameter as function of PMT signal spatial width. For unsqueezed droplets, the signal is equal to the diameter.",
+       x = "PMT signal width converted into [µm]",
+       y = "Corresponding sphere diameter [µm]")
+```
+
+```{r}
+tibble::tibble("diameter" = seq(10,45)) %>% 
+  dplyr::mutate("length" = sapply(diameter, diameter_to_squeezed_length, 20, 30)) %>% 
+  ggplot(aes(x = length, y = diameter)) + 
+  geom_line() + 
+  theme_pretty() +
+  labs(title = "Droplet diameter as function of PMT signal spatial width. For unsqueezed droplets, the signal is equal to the diameter.",
+       x = "PMT signal width converted into [µm]",
+       y = "Corresponding sphere diameter [µm]")
+```
+These calculated widths/diameters represent a flow rate normalization, therefore, the uninjected (i.e. field OFF) droplet populations should now all have the same `width_um` value, regardless of the flow rate.
+That is, if no measurement artifacts become important when scaling up the flow rates.
+
+```{r}
+grn %>% 
+  filter(ac_field == FALSE) %>%
+  dplyr::mutate("rel_injection_pressure" = p_water / (q_oil + q_emulsion)) %>% 
+  group_by(file, ac_field, rel_injection_pressure, p_water) %>% 
+  summarise(median_width = median(width_um), .groups = "drop") %>% 
+  mutate("corresponding_sphere_diameter" = sapply(median_width, squeezed_length_to_diameter, 20, 30)) %>% 
+  arrange(median_width) %>% 
+  ggplot(aes(x = p_water, y = corresponding_sphere_diameter)) +
+  geom_point() + 
+  theme_pretty_thesis()
+```
+
+Interesting: After recording signals 0-4, I had to re-adjust the laser focus due to chip movement.
+These recordings seem to cluster apart from the other measurements.
+Also: This measurement approach becomes inaccurate as the peak widths approach the resolution limit (see `Signal33`).
+
+Reasons for droplets appearing larger then actual when measured like this:
+
+- laser spot is not an ideal point but has spatial extent, therefore the PMTs receive a signal also, when the droplet is only partially there
+- peak widths are measured from the beginning of the rising edge until the end of the falling edge
+
+Does voltage correlate with width?
+
+```{r}
+grn %>% 
+  dplyr::filter(ac_field == FALSE) %>% 
+  ggplot(aes(x = voltage, y = width_um)) + 
+  geom_bin2d(bins = 100) + 
+  theme_pretty_thesis() + 
+  scale_fill_viridis_c(option = "A", direction = -1)
+```
+
+
+
+
+
+### (file, electric field state)-level
+
+Summarize by groups:
+
+```{r}
+grnSummary <- grn %>% 
+  dplyr::group_by(file, ac_field) %>% 
+  dplyr::summarise("width_mean" = mean(width),
+                   "width_sd" = sd(width),
+                   "width_median" = median(width),
+                   "voltage_mean" = mean(voltage),
+                   "voltage_sd" = sd(voltage),
+                   "voltage_median" = median(voltage),
+                   "area_mean" = mean(area),
+                   "area_sd" = sd(area),
+                   "area_median" = median(area),
+                   "spacing_mean" = mean(spacing),
+                   "spacing_sd" = sd(spacing),
+                   "spacing_median" = median(spacing),
+                   "frequency" = dplyr::n() / (max(t_max) - min(t_max)),
+                   "injected" = mean(injected),
+                   "n_droplets" = dplyr::n(),
+                   .groups = "drop") %>% 
+  dplyr::left_join(metadata, by = "file") %>% 
+  dplyr::mutate("velocity" = ((q_emulsion+q_oil) * 1e9/3600)/(20*30)*1e-6) # m/s
+redSummary <- red %>% 
+  dplyr::group_by(file, ac_field) %>% 
+  dplyr::summarise("width_mean" = mean(width),
+                   "width_sd" = sd(width),
+                   "width_median" = median(width),
+                   "voltage_mean" = mean(voltage),
+                   "voltage_sd" = sd(voltage),
+                   "voltage_median" = median(voltage),
+                   "area_mean" = mean(area),
+                   "area_sd" = sd(area),
+                   "area_median" = median(area),
+                   "spacing_mean" = mean(spacing),
+                   "spacing_sd" = sd(spacing),
+                   "spacing_median" = median(spacing),
+                   "frequency" = dplyr::n() / (max(t_max) - min(t_max)),
+                   "is_false_droplet" = mean(is_false_drop),
+                    "n_droplets" = dplyr::n(),
+                   .groups = "drop") %>% 
+  dplyr::left_join(metadata, by = "file") %>% 
+  dplyr::mutate("velocity" = ((q_emulsion+q_oil) * 1e9/3600)/(20*30)*1e-6) # m/s
+```
+
+
+Plot droplet frequency (as derived from the number of droplets detected in the signal) vs. emulsion flow rate.
+The droplet frequency as derived from the number of droplets registered over the duration of signal recording is directly proportional to the emulsion flow rate, as expected.
+
+```{r}
+grnSummary %>% 
+  ggplot(aes(q_emulsion, y = frequency)) + 
+  geom_smooth(method = "lm", formula = y~x, color = "black", linetype = "dashed") + 
+  geom_point(shape = 1) + 
+  theme_pretty_thesis()
+```
+
+As expected, it can be seen that the droplet frequency depends linearly on the emulsion flow rate.
+Therefore, I can use it as a second axis when plotting a quantity against the emulsion flow rate.
+
+```{r}
+# get linear regression
+m <- lm(frequency ~ q_emulsion, grnSummary)
+m
+```
+
+I find: frequency [Hz] = q_emulsion [µl/h] * 12.05 + 21.72.
+I neglect the offset.
+
+
+
+
+```{r}
+grnSummary %>% 
+  dplyr::mutate("width_um" = width_mean * velocity * 1e6) %>% 
+  dplyr::select(file, q_emulsion, q_oil, p_water, ac_field, width_mean, width_um) %>% 
+  dplyr::mutate("width_um" = sapply(width_um, squeezed_length_to_diameter, 20, 30))
+```
+
+
+
+
+
+
+Next, I can determine the mean or median droplet diameter in the non-injected populations (i.e. AC field off) and use it to measure the volume increase, i.e. the injected volume.
+I do this on the droplet population level, and not for individual droplets.
+
+
+
+
+
+Plot Q_emulsion (~droplet frequency) vs. p_injection
+
+- relate peak width to droplet dimensions by measuring droplet sizes in high-speed video of uninjected droplets.
+
+
+
+
+Percentage of false droplets
+
+```{r}
+redSummary %>% 
+  ggplot(aes(x = is_false_droplet)) + 
+  geom_histogram(aes(fill = ac_field), alpha = 0.5, position = "identity", bins = 30) + 
+  theme_pretty_thesis() + 
+  labs(x = "Percentage of false droplets",
+       y = "Count", fill = "Electric field on") + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1))
+```
+
+Percentage of injected droplets:
+
+```{r}
+grnSummary %>% 
+  ggplot(aes(x = injected)) + 
+  geom_histogram(aes(fill = ac_field), alpha = 0.5, position = "identity", bins = 30) + 
+  theme_pretty_thesis() + 
+  labs(x = "Percentage of injected droplets",
+       y = "Count", fill = "Electric field on") + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1))
+```
+
+```{r}
+grnSummary %>% 
+  # filter(q_emulsion != 300) %>% 
+  ggplot(aes(x = velocity, y = p_water, color = injected, shape = ac_field)) + 
+  geom_point(size = 2, position = position_dodge2(width = 0.01)) + 
+  scale_colour_viridis_c() + 
+  # scale_color_gradientn(colours = pal) + 
+  theme_pretty_thesis() 
+```
+
+
+
+
+
+
+
+### Single-file level
+
+Consolidate electric field and channel into single rows:
+
+
+- false_drops = percentage of false drops when field is on
+- false_injections = percentage of injected drops when field is off
+- leakage = percentage of false drops when field is off
+- delta_width = median width field on minus field off
+
+
+```{r}
+# extract the base information from grnSummary
+drops <- grnSummary %>% 
+  dplyr::filter(ac_field == TRUE) %>% 
+  dplyr::select(c(file, q_oil, q_emulsion, p_water, velocity, frequency, ac_v_pp, ac_frequency)) %>% 
+  dplyr::left_join(
+    
+# get information about INJECTED droplets, i.e. channel == green and injected > 0 (and probably field == off for most cases)
+grn %>% 
+  dplyr::filter(injected == 1) %>% 
+  dplyr::group_by(file) %>% 
+  dplyr::summarise("width_green_injected" = median(width),
+                   "width_green_injected_sd"= sd(width),
+                   "voltage_green_injected" = median(voltage),
+                   "area_green_injected" = median(area),
+                   .groups = "drop"),
+  by = "file") %>% 
+  dplyr::left_join(
+
+# get information about NON-injected droplets
+grn %>% 
+  dplyr::filter(injected == 0) %>% 
+  dplyr::group_by(file) %>% 
+  dplyr::summarise("width_green_noninjected" = median(width),
+                   "width_green_noninjected_sd"= sd(width),
+                   "voltage_green_noninjected" = median(voltage),
+                   "area_green_noninjected" = median(area),
+                   .groups = "drop"),
+  by = "file") %>% 
+  dplyr::left_join(
+    
+# get information about green drops when field is on
+grn %>% 
+  dplyr::filter(ac_field == TRUE) %>% 
+  dplyr::group_by(file) %>% 
+  dplyr::summarise("n_droplets_on" = dplyr::n(),
+                   "missed_injections" = sum(!injected) / dplyr::n()), # missed injection = field on, but not injected
+  by = "file") %>% 
+  dplyr::left_join(
+    
+# get information about green drops when field is off
+grn %>% 
+  dplyr::filter(ac_field == FALSE) %>% 
+  dplyr::group_by(file) %>% 
+  dplyr::summarise("n_droplets_off" = dplyr::n(), # number of green peaks when field is off
+                   "false_injections" = sum(injected) / dplyr::n()), # false injections = field off, still injected
+  by = "file") %>% 
+  dplyr::left_join(
+
+    
+# get information about red droplets
+red %>% 
+  dplyr::filter(ac_field == TRUE) %>% 
+  dplyr::group_by(file) %>% 
+  dplyr::summarise("n_false_droplets" = sum(is_false_drop)), # false droplets = number of de-novo red droplets
+  by = "file") %>% 
+  dplyr::left_join(
+    
+# droplet leakage and false injections
+red %>% 
+  dplyr::filter(ac_field == FALSE) %>% 
+  dplyr::group_by(file) %>% 
+  dplyr::summarise("n_leaked_droplets" = sum(is_false_drop), # leaked droplets = number of de-novo red droplets
+                   "n_red_droplets_off" = dplyr::n()
+                   ),
+  by = "file"
+)
+```
+
+Derive some further metrics from these data:
+
+```{r}
+drops <- drops %>% 
+  # calculate percentage of false/leaked droplets
+  dplyr::mutate("false_droplets" = n_false_droplets/n_droplets_on,
+                "leaked_droplets" = n_leaked_droplets/n_droplets_off) %>% 
+  # compare injected vs. non-injected droplets
+  dplyr::mutate("delta_width" = width_green_injected - width_green_noninjected,
+                "delta_voltage" = voltage_green_injected - voltage_green_noninjected,
+                "delta_area" = area_green_injected - area_green_noninjected,
+                ) %>% 
+  # convert signal widths into spatial widths
+  dplyr::mutate("width_green_injected_um" = width_green_injected * velocity * 1e6,
+                "width_green_noninjected_um" = width_green_noninjected * velocity * 1e6,
+                "delta_width_um" = delta_width * velocity * 1e6) %>% 
+  # convert spatial width into droplet diameter
+  dplyr::mutate("diameter_injected" = sapply(width_green_injected_um, squeezed_length_to_diameter, 20, 30),
+                "diameter_noninjected" = sapply(width_green_noninjected_um, squeezed_length_to_diameter, 20, 30)) %>% 
+  # calculate volume change, assuming only the "cylinder-portion" of the droplet changes (because it is squeezed)
+  dplyr::mutate("injected_volume" = pi * 10 * 15 * delta_width_um * 1e-3) %>% 
+  # express injection pressure as ratio
+  dplyr::mutate("p_injection_relative" = p_water/(q_emulsion + q_oil))
+```
+
+
+
+```{r}
+pal <- wes_palette("Zissou1", 100, type = "continuous")
+drops %>% 
+  dplyr::mutate("width_sd_um" = width_green_injected_sd * velocity * 1e6,
+                "injected_volume_sd" = pi * 10 * 15 * width_sd_um * 1e-3) %>%
+  ggplot(aes(x = p_injection_relative, y = injected_volume)) + 
+  # geom_errorbar(aes(ymin = injected_volume - injected_volume_sd, ymax = injected_volume + injected_volume_sd)) + 
+  geom_point(aes(fill = q_emulsion + q_oil), shape = 22, size = 4) +
+  scale_fill_gradientn(colours = pal, trans = "log",
+                       breaks = unique(drops$q_emulsion + drops$q_oil)) +
+  theme_pretty_thesis() + 
+  guides(fill = guide_legend(direction = "horizontal", title.position = "top", byrow = T)) + 
+  labs(x = expression("Relative injection pressure "* p["injection"]/Q["total"] * " [mbar/µL/h]"),
+       y = "Injected volume [pL]",
+       fill = "Total flowrate [µL/h]")
+```
+
+
+```{r, eval=FALSE}
+drops %>% 
+  dplyr::select(c(-ac_v_pp, -ac_frequency, -n_droplets_on, -n_droplets_off, -n_false_droplets, -n_leaked_droplets, n_red_droplets_off, -delta_width, -width_green_injected, -width_green_noninjected, -file)) %>% 
+  plot()
+grDevices::dev.off()
+```
+
+```{r}
+p1 <- drops %>% 
+  dplyr::mutate("width_sd_um" = width_green_injected_sd * velocity * 1e6,
+                "injected_volume_sd" = pi * 10 * 15 * width_sd_um * 1e-3) %>%
+  ggplot(aes(x = p_injection_relative, y = injected_volume)) + 
+  geom_smooth(method = "lm", formula = y~x, color = "black", linetype = "dashed", se = FALSE, linewidth = 0.5) + 
+  # geom_errorbar(aes(ymin = injected_volume - injected_volume_sd, ymax = injected_volume + injected_volume_sd)) + 
+  geom_point(aes(fill = frequency), shape = 22, size = 4) +
+  # scale_fill_gradientn(colours = pal, trans = "log",
+  #                      breaks = c(250, 500, 1000, 2000, 3000)) + 
+  scale_fill_viridis_c(direction = -1, option = "G")+
+  theme_pretty_thesis() + 
+  # guides(fill = guide_legend(direction = "horizontal", title.position = "top", byrow = T)) +
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", label.hjust = 0.5,
+                               barwidth = 1.2, default.unit = "in"))+
+  labs(x = expression("Relative injection pressure "* p["injection"]/Q["total"] * " [mbar/µL/h]"),
+       y = "Injected volume [pL]",
+       fill = "Throughput [droplets/s]",
+       title = "Picoinjected volumes are largest at low throughput and relatively high \ninjection pressure",
+       tag = "A") + 
+  # xlim(c(0,0.8)) + 
+  theme(legend.position = c(0,1), legend.justification = c(0,1))
+p1
+```
+
+
+```{r, eval=FALSE}
+grDevices::pdf("output/plots/04_injected_volume.pdf", width=6, height = 4)
+print(last_plot())
+grDevices::dev.off()
+```
+
+```{r, eval=FALSE}
+ggsave("output/plots/04_injected_volume.png", width = 6, height = 4, dpi = 300)
+```
+
+```{r}
+p2 <- drops %>% 
+  dplyr::mutate("width_sd_um" = width_green_injected_sd * velocity * 1e6,
+                "injected_volume_sd" = pi * 10 * 15 * width_sd_um * 1e-3) %>%
+  ggplot(aes(y = p_injection_relative, x = frequency)) + 
+  # geom_errorbar(aes(ymin = injected_volume - injected_volume_sd, ymax = injected_volume + injected_volume_sd)) + 
+  geom_point(aes(fill = injected_volume), shape = 22, size = 4) +
+  # scale_fill_gradientn(colours = pal, trans = "log",
+                       # breaks = c(250, 500, 1000, 2000, 3000)) + 
+  # scale_fill_gradientn(colors = pal) +
+  scale_fill_viridis_c(option = "A", direction = -1) + 
+  theme_pretty_thesis() + 
+  # guides(fill = guide_legend(direction = "horizontal", title.position = "top", byrow = T)) +
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", label.hjust = 0.5,
+                               barwidth = 1.2, default.unit = "in"))+
+  labs(y = expression("Relative injection pressure [mbar/µL/h]"),
+       x = "Frequency [droplets/s]",
+       fill = "Injected volume [pL]",
+       title = "Maximum injectable volume decreases at higher throughput",
+       tag = "B") + 
+  # xlim(c(0,0.8)) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1))
+p2
+```
+
+
+
+```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
+p1 + theme(plot.margin = margin(r = 0.5, unit = "cm")) + p2
+ggsave("output/plots/04_picoinjector_characterization_volume.png", width = 9.39, height = 3.31)
+```
+
+
+
+Make overlapping histogram plot:
+
+```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
+grn %>% 
+  filter(q_emulsion == 25,
+         ac_field == TRUE) %>% 
+  ggplot(aes(x = width*1e3)) + 
+  geom_histogram(aes(fill = factor(p_water)), position = "identity", alpha = 0.8, bins = 100, color = "black", linewidth = 0.3) + 
+  scale_fill_viridis_d(option = "A", direction = -1)+
+  theme_pretty_thesis() + 
+  guides(fill = guide_legend(direction = "horizontal", nrow = 1, title.position = "top"))+
+  theme(legend.position = c(0,1), legend.justification = c(0,1)) + 
+  xlim(c(0.5, 01.75)) +
+  labs(x = "Droplet signal width after injection [ms]",
+       y = "Number of droplets",
+       fill = "Injection pressure [mbar]",
+       title = "Picoinjected volume controlled by injection pressure at fixed droplet velocity")
+  
+```
+
+
+
+
+```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
+ggsave("output/plots/04_picoinjector_characterization_histogram.png", width = 9.39, height = 3.31)
+```
+
+
+
+
+
+
+
+
+
+
+
+Check distribution of all these values:
+
+```{r}
+drops %>% 
+  tidyr::pivot_longer(c(-file, -q_oil,-q_emulsion, -p_water, -ac_v_pp, -ac_frequency, -p_injection_relative)) %>% 
+  ggplot(aes(y = value, x = p_injection_relative)) + 
+  geom_point() + 
+  scale_y_log10() +
+  facet_wrap(~ name, scales ="free")
+```
+
+
+```{r}
+drops %>% 
+  dplyr::mutate("delta_sd" = width_green_injected_sd - width_green_noninjected_sd) %>% 
+  ggplot(aes(x = p_injection_relative, y = delta_sd)) + 
+  geom_point()
+```
+
+
+
+
+
+
+```{r}
+drops %>% 
+  ggplot(aes(x = factor(q_emulsion), y = p_water)) + 
+  geom_point(aes(fill = injected_volume), shape = 22, size = 4) +
+  scale_fill_gradientn(colours = pal) +
+  theme_pretty_thesis() + 
+  scale_y_log10() +
+  # scale_x_log10() + 
+  # guides(fill = guide_legend(direction = "horizontal", title.position = "top", byrow = T)) +
+  labs(x = "Emulsion flow rate [µL/h]",
+       y = "Injection pressure [mbar]",
+       fill = "Injected volume [pL]")
+  # annotation_logticks()
+```
+
+```{r}
+drops %>% 
+  ggplot(aes(x = p_injection_relative, y = injected_volume)) + 
+  geom_point(aes(fill = leaked_droplets*100), shape = 22, size = 4) +
+  scale_fill_gradientn(colours = pal, trans = "log",
+                       breaks = c(0.05, 0.2, 0.04, 20)) + 
+  theme_pretty_thesis() + 
+  guides(fill = guide_legend(direction = "horizontal", title.position = "top", byrow = T)) + 
+  labs(x = expression("Relative injection pressure "* p["injection"]/Q["total"] * " [mbar/µL/h]"),
+       y = "Injected volume [pL]",
+       fill = "Percentage of leaked droplets when field off")
+```
+
+
+```{r}
+drops %>% 
+  ggplot(aes(x= p_injection_relative, y = false_droplets)) + 
+  geom_point()
+```
+
+
+
+```{r}
+drops %>% 
+  ggplot(aes(x = width_green_injected, y = delta_voltage)) + 
+  geom_point()
+```
+
+```{r}
+grn %>% 
+  dplyr::group_by(file, ac_field) %>% 
+  filter(width > quantile(width, 0.05) & width < quantile(width, 0.95)) %>% 
+  filter(area > quantile(area, 0.05) & area < quantile(area, 0.95)) %>% 
+  dplyr::ungroup() %>% 
+  ggplot(aes(x = width, fill = ac_field)) + 
+  geom_histogram(bins = 50, position = "identity", alpha = 0.3) + 
+  facet_wrap(~ file, scales = "free")
+dev.off()
+```
+
+
+
+
+
+
+
+
+### Use additional imaging data to correct the droplet sizes derived from PMT signals and flow rates
+
+Read droplet sizes derived from image analysis and compare:
+
+```{r}
+files <- list.files("data/fads/230126", pattern = "_kymograph_droplets.txt$", full.names = TRUE)
+kymographDrops <- tibble::tibble()
+for (f in files) {
+  kymographDrops <- kymographDrops %>% 
+    dplyr::bind_rows(
+      readr::read_table(f, show_col_types = FALSE) %>% 
+        dplyr::mutate("file" = stringr::str_extract(basename(f), "\\d{8}_\\d{6}")) %>% 
+        # normalize intensity by droplet width
+        dplyr::mutate("intensity" = intensity/width)
+    )
+}
+
+# add metadata
+kymographDrops <- kymographDrops %>% 
+  dplyr::rename(c("video" = "file")) %>% 
+  dplyr::left_join(
+    readr::read_table("data/fads/230126/metadata.txt", show_col_types = FALSE),
+    by = "video"
+  )
+ kymographDrops
+```
+
+
+Summarize these into important statistics
+
+```{r}
+diametersKymo <- kymographDrops %>%
+  dplyr::filter(!is.na(file)) %>% 
+  dplyr::group_by(file, video, laser_focus) %>% 
+  dplyr::summarise("diameter_mean" = mean(width),
+                   "diameter_median" = median(width),
+                   "diameter_sd" = sd(width),
+                   "n_droplets" = dplyr::n(),
+                   .groups = "drop")
+widthNotInjected <- kymographDrops %>%
+  dplyr::filter(is.na(file)) %>% 
+  dplyr::group_by(video) %>% 
+  dplyr::summarise("diameter_mean" = mean(width)) %>% 
+  dplyr::pull(diameter_mean) %>% 
+  mean()
+```
+
+Correlate the two droplet diameter measurements.
+I am translating the measured droplet diameter into the corresponding equivalent droplet length, when the droplet is squeezed in the channel (since that's where the laser measures its length).
+
+```{r}
+diametersBoth <- drops %>% 
+  dplyr::select(c(file, width_green_injected_um)) %>% 
+  dplyr::left_join(diametersKymo, by = "file") %>% 
+  dplyr::filter(!is.na(diameter_median)) %>% 
+  # convert measured diameter in equivalent squeezed droplet length
+  dplyr::mutate("equivalent_squeezed_length" = sapply(diameter_median, diameter_to_squeezed_length, 20, 30))
+diametersBoth %>% 
+  ggplot(aes(x = equivalent_squeezed_length, y = width_green_injected_um, color = as.factor(laser_focus))) + 
+  geom_abline(slope = 1, intercept = 0) +
+  geom_point(aes(size = n_droplets)) + 
+  theme_pretty_thesis()
+```
+There seems to be a constant offset between droplet sizes measured from images, and those derived from the PMT signals.
+After the first five measurements, I had to adjust the chip position slightly, and therefore the laser focus was slightly different in subsequent acquisitions.
+Therefore, I will use two different width-correction values for the two groups.
+
+
+The average offset is:
+
+```{r}
+diametersBoth %>% 
+  dplyr::group_by(laser_focus) %>% 
+  dplyr::summarise("y_intercept" = mean(width_green_injected_um - 1* equivalent_squeezed_length))
+```
+
+That means, the signal peaks measured by the PMT tubes and as detected by the MATLAB code are on average 26.18 (or 8.68 in the first laser focus spot configuration) µm too wide.
+I will therefore subtract this value from the signal length, before computing the corresponding droplet volume.
+
+```{r}
+dropsCorrected <- drops %>% 
+  dplyr::select(c(-width_green_injected, -width_green_noninjected, -delta_width)) %>% 
+  dplyr::mutate(dplyr::case_when(file %in% c("Signal_0", "Signal_1", "Signal_2", "Signal_3", "Signal_4") ~ dplyr::across(c(width_green_injected_um, width_green_noninjected_um), ~ .x -8.68),
+                                 .default = dplyr::across(c(width_green_injected_um, width_green_noninjected_um), ~ .x -26.19))) %>% 
+  # convert squeezed width into sphere diameter
+  dplyr::mutate("diameter_injected" = sapply(width_green_injected_um, squeezed_length_to_diameter, 20, 30),
+                "diameter_noninjected" = sapply(width_green_noninjected_um, squeezed_length_to_diameter, 20, 30)) 
+```
+
+Actually, there is a second factor that need to be corrected for: When a droplet is being injected, the total flow rate in the channel increases, and therefore also the fluid velocity.
+This was not accounted for when calculating droplet velocities, and deriving spatial droplet sizes from that.
+
+```{r}
+dropsCorrected %>% 
+  ggplot(aes(x = p_water, y = diameter_noninjected)) + 
+  geom_point(aes(fill = p_injection_relative), shape = 21, size = 4) + 
+  scale_fill_gradientn(colors = pal) + 
+  theme_pretty_thesis()
+```
+
+Since theoretically pressure contributes linearly to flowrate, which, in turn is directly proportional to the fluid velocity, I correct for the additional flow rate component by scaling the width accordingly
+
+
+Investigate the difference in signal width between injected and non-injected droplets:
+
+
+
+
+
+For which parameter combinations picoinjection was possible, in general?
+
+
+
+
+
+### Switcheability
+
+Combine red and green peaks.
+
+
+```{r}
+make_fads_table <- function(grn, red) {
+  grn %>%
+    dplyr::filter(occupancy < 2) %>%
+    dplyr::select(c(file, id, voltage, width, spacing, area)) %>%
+    dplyr::rename(c("green" = "voltage")) %>% 
+    dplyr::left_join(red %>%
+                       dplyr::select(c(file, barcode, voltage)) %>% 
+                     
+    dplyr::rename(c("red" = "voltage")),
+                     by = c("file", "id" = "barcode")) %>% 
+    dplyr::mutate("red" = case_when(is.na(red) ~ 0,
+                                    .default = red)) %>% 
+    return()
+}
+```
+
+
+```{r}
+make_fads_table(grn, red) %>% 
+  ggplot(aes(x = green, y = red))+
+  geom_bin_2d(bins = 100) +
+  facet_wrap(~file)
+```
+
+
+
+
+### Plot some Heatmap plots
+
+
+```{r}
+d <- fads_read_tsv("~/nyancat_tsv/20230126/Recorded_data_10.txt")
+d
+```
+
+
+```{r}
+plasma_pal <- c("white", viridis::magma(n = 5, direction = -1, begin = 0, end = 0.8))
+
+p1 <- d %>% 
+  # remove outliers
+  # filter(red > quantile(red, 0.025) & red < quantile(red, 0.975)) %>%
+  # filter(green > quantile(green, 0.025) & green < quantile(green, 0.975)) %>%
+  ggplot(aes(x = green, y = red)) + 
+  geom_bin2d(bins = 100) + 
+  theme_pretty_thesis() + 
+  # theme(
+  #         legend.background = element_rect(fill="transparent", color = "white", linewidth = 0.25), 
+  #         legend.box.margin = margin(b=0.1, r=0.1, t = 0.1, l = 0.1, unit="cm")) + 
+       
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", barwidth = 1.2, default.unit = "in", label.theme = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))) + 
+  # scale_fill_viridis_c(option = "A", direction = -1)+
+  # scale_fill_gradient(low = "white", high = "#F21A00") +
+  scale_fill_gradientn(colors = plasma_pal) + 
+  labs(x = "Injected dye signal [V]",
+       y = "Barcode dye signal [V]",
+       fill = "Number of droplets",
+       title = "Two populations corresponding to injected and non-injected droplets",
+       tag = "A")
+p1
+```
+
+```{r}
+p2 <- d %>% 
+  dplyr::mutate("time" = time - min(time)) %>% 
+  dplyr::mutate("time"= time/max(time)*79.53461) %>% 
+  # remove outliers
+  # filter(red > quantile(red, 0.025) & red < quantile(red, 0.975)) %>%
+  # filter(green > quantile(green, 0.025) & green < quantile(green, 0.975)) %>%
+  ggplot(aes(x = time, y = green)) + 
+  geom_bin2d(bins = 100, show.legend = FALSE) + 
+  theme_pretty_thesis() + 
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", barwidth = 1.2, default.unit = "in", label.theme = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))) + 
+  theme(legend.position = c(0,0), legend.justification = c(0,0),
+          legend.background = element_rect(fill="transparent", color = "white", linewidth = 0.25), 
+          legend.box.margin = margin(b=0.1, r=0.1, t = 0.1, l = 0.1, unit="cm")) + 
+  # scale_fill_viridis_c(option = "A", direction = -1)+
+  # scale_fill_gradient(low = "white", high = "#F21A00") +
+  scale_fill_gradientn(colors = plasma_pal, limits = c(0, 499)) + 
+  labs(x = "Time [s]",
+       y = "Injected dye signal [V]",
+       fill = "Number of droplets",
+       title = "Switching off the electric field reduces injected dye signal",
+       tag = "B") + 
+  coord_cartesian(expand = FALSE)
+p2
+```
+
+```{r}
+p3 <- d %>% 
+  dplyr::mutate("time" = time - min(time)) %>% 
+  dplyr::mutate("time"= time/max(time)*79.53461) %>% 
+  # remove outliers
+  # filter(red > quantile(red, 0.025) & red < quantile(red, 0.975)) %>%
+  # filter(green > quantile(green, 0.025) & green < quantile(green, 0.975)) %>%
+  ggplot(aes(x = time, y = width)) + 
+  geom_bin2d(bins = 100, show.legend = FALSE) + 
+  theme_pretty_thesis() + 
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", barwidth = 1.2, default.unit = "in", label.theme = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))) + 
+  theme(legend.position = c(0,0), legend.justification = c(0,0),
+          legend.background = element_rect(fill="transparent", color = "white", linewidth = 0.25), 
+          legend.box.margin = margin(b=0.1, r=0.1, t = 0.1, l = 0.1, unit="cm")) + 
+  # scale_fill_viridis_c(option = "A", direction = -1)+
+  # scale_fill_gradient(low = "white", high = "#F21A00") +
+  scale_fill_gradientn(colors = plasma_pal, limits = c(0, 499)) + 
+  labs(x = "Time [s]",
+       y = "Droplet width [ms]",
+       fill = "Number of droplets",
+       title = "Switching off the electric field reduces droplet width",
+       tag = "C") + 
+  coord_cartesian(ylim = c(0,1), expand = F)
+p3
+```
+
+```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
+p1 + theme(plot.margin = margin(r = 0.5, unit = "cm")) + (p2/p3)
+ggsave("output/plots/04_picoinjector_characterization_exemplary_fads.png", width = 9.39, height = 3.31)
+```
+
+
+
+```{r}
+p1 <- grn %>% 
+  dplyr::filter(file == "Signal_10") %>% 
+  ggplot(aes(x=width*1e3)) + 
+  # geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.5, position = "identity", show.legend = F) + 
+  geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.6, position = "identity", color = "black", linewidth = 0.3, show.legend = FALSE) + 
+  theme_pretty_thesis() + 
+  coord_cartesian(expand = F, ylim = c(0, 11000)) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1)) + 
+  # scale_fill_manual(values = c("#FF0000", "#00A08A"), labels = c("OFF", "ON")) + 
+  scale_fill_viridis_d(option = "G", begin = 0, end = 1, direction = 1) + 
+  labs(x = "Droplet width [ms]",
+       y = "Number of droplets",
+       fill = "Electric field", 
+       title = "Signal width of injected droplet increases...",
+       tag = "A")
+p1
+```
+
+```{r}
+p2 <- grn %>% 
+  dplyr::filter(file == "Signal_10") %>% 
+  ggplot(aes(x=area*1e3)) + 
+  geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.6, position = "identity", color = "black", linewidth = 0.3) + 
+  theme_pretty_thesis() +
+  coord_cartesian(expand = F, ylim = c(0, 11000)) + 
+  xlim(c(0, 1.2e-2)) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1)) + 
+  # scale_fill_manual(values = c("#FF0000", "#00A08A"), labels = c("OFF", "ON")) + 
+  scale_fill_viridis_d(option = "G", begin = 0, end = 1, direction = 1, labels = c("OFF", "ON")) + 
+  labs(x = "Barcode dye signal area [V ms]",
+       y = "Number of droplets",
+       title = "... but area under signal decreases upon injection",
+       fill = "Electric field",
+       tag = "B")
+p2
+```
+
+
+
+
+```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
+p1 + theme(plot.margin = margin(r = 0.5, unit = "cm")) + p2
+ggsave("output/plots/04_picoinjector_characterization_width_area.png", width = 9.39, height = 3.31)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Combine red and green summaries: -->
+
+<!-- ```{r} -->
+<!-- grnFinal <- grnSummary %>%  -->
+<!--   group_by(file) %>%  -->
+<!--   summarise() -->
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- grnSummary %>%  -->
+<!--   ggplot(aes(x = q_emulsion, y = p_water)) +  -->
+<!--   geom_point()  + -->
+<!--   scale_x_continuous(sec.axis = sec_axis(~ . *m$coefficients[2], name = "Droplet frequency [Hz]")) +  -->
+<!--   theme_pretty() -->
+<!-- ``` -->
+
+
+
+
+
+## Other stuff
+
+
+Filter outlier widths
+
+<!-- ```{r} -->
+<!-- g <- grn %>%  -->
+<!--   group_by(file, ac_field) %>%  -->
+<!--   filter(width > quantile(width, 0.05) & width < quantile(width, 0.95)) %>%  -->
+<!--   ungroup() %>%  -->
+<!--   filter(file == "Signal_2" & ac_field == T) %>%  -->
+<!--   ggplot(aes(x = width)) +  -->
+<!--   geom_density() -->
+<!-- g -->
+<!-- ``` -->
+
+
+
+
+
+<!-- ```{r} -->
+<!-- c25 <- c( -->
+<!--   "dodgerblue2", "#E31A1C", # red -->
+<!--   "green4", -->
+<!--   "#6A3D9A", # purple -->
+<!--   "#FF7F00", # orange -->
+<!--   "black", "gold1", -->
+<!--   "skyblue2", "#FB9A99", # lt pink -->
+<!--   "palegreen2", -->
+<!--   "#CAB2D6", # lt purple -->
+<!--   "#FDBF6F", # lt orange -->
+<!--   "gray70", "khaki2", -->
+<!--   "maroon", "orchid1", "deeppink1", "blue1", "steelblue4", -->
+<!--   "darkturquoise", "green1", "yellow4", "yellow3", -->
+<!--   "darkorange4", "brown" -->
+<!-- ) -->
+<!-- getPalette <- colorRampPalette(c25) -->
+<!-- ``` -->
+
+
+
+
+
+### Evaluate switching performance
+
+Load RED signals
+
+Summarize them for every file and field state and calculate percentage of false droplets.
+
+
+
+
+
+## Final plots
+
+What do I wanna communicate with my plots:
+
+- what injected volumes can be expected
+- Injected volume consistency
+- switchability
+- flexibility in the injected volume
+- how to operate the picoinjector, which operating regimes are there? (max throughput, max percentage of injected droplets, min percentage of false droplets, high consistency of injected volume)
+
+Plot the distribution of `width` values, but only for times were the AC field was switched on, i.e. droplets were being picoinjected and therefore their width is supposed to increase with increasing injection pressure.
+
+<!-- ```{r, fig.width=6, fig.height=10} -->
+<!-- grn %>% -->
+<!--   group_by(file, ac_field) %>% -->
+<!--   filter(width > quantile(width, 0.05) & width < quantile(width, 0.95)) %>% # remove outliers -->
+<!--   dplyr::filter(ac_field = TRUE) %>% -->
+<!--   dplyr::mutate("q" = q_oil + q_emulsion) %>% -->
+<!--   ggplot(aes(x = width, fill = factor(p_water))) + -->
+<!--   geom_histogram(bins = 30, position = "identity", alpha = 0.2) + -->
+<!--   scale_fill_viridis_d() + -->
+<!--   facet_wrap(~ factor(q), ncol = 1, scales = "free") + -->
+<!--   theme_pretty_thesis() -->
+<!-- ``` -->
+
+
+Width distribution for every signal:
+
+
+
+<!-- ```{r, fig.width=10, fig.height=15} -->
+<!-- grn %>%  -->
+<!--   ggplot(aes(x = width, fill = ac_field)) +  -->
+<!--   geom_histogram(position = "identity", alpha = 0.2) +  -->
+<!--   facet_wrap(~ file, scales = "free", ncol = 4) +  -->
+<!--   theme_pretty_thesis() -->
+<!-- ``` -->
+
+
+
+
+## TODO
+
+If I normalize the width by the droplet velocity, I should be able to superimpose the width distributions of all populations were the field was switched off, and find them at the same location.
+
+
+Argument (if the signal-width-derived droplet size deviates more )

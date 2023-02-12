@@ -51,7 +51,7 @@ It seems like variables frequency and channel do not contribute significantly to
 ```{r}
 p <- ggplot(d, aes(x = input_vpp, y = output_vpp)) + 
   geom_point(shape = 23) + 
-  geom_smooth(method = "lm", formula = "y ~ x", fullrange = TRUE, color = "black", size = 1) + 
+  geom_smooth(method = "lm", formula = "y ~ x", fullrange = TRUE, color = "black", linewidth = 1) + 
   xlim(c(0, 12.5)) + 
   labs(title = '"boexle sorter" output voltage as function of input voltage',
        x = "Input voltage peak-to-peak",
@@ -69,3 +69,10 @@ p +
 ```
 
 
+Calculate linear regression manually:
+
+```{r}
+lm(output_vpp ~ input_vpp, d)
+```
+
+The amplifier gain is therefore 52x.

@@ -1,7 +1,6 @@
 url: ~
 template:
   bootstrap: 5
-  bootswatch: flatly
 
 articles:
 - title: Calculations
@@ -15,8 +14,11 @@ articles:
   - spincurves
   - logfiles
   - fads_analysis
+  - fads_picoinjector_characterization
   - electrical_engineering
   - comsol
+  - pressures
+  - droplet_image_analysis
 - title: Thesis
   navbar: Thesis
   contents:

@@ -10,7 +10,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  eval = FALSE
 )
 ```
 
@@ -28,7 +29,7 @@ Global settings:
 
 ```{r}
 textwidth <- 6.14
-wes_palette("Zissou1")
+# wes_palette("Zissou1")
 ```
 
 
@@ -177,6 +178,26 @@ grDevices::dev.off()
 
 
 
+
+## Supplementary Information
+
+Voltage amplifier:
+
+```{r, fig.width=6, fig.height=4}
+d <- readr::read_csv("data/boexle_sorter_output.csv", show_col_types = FALSE)
+p <- ggplot(d, aes(x = input_vpp, y = output_vpp)) + 
+  geom_point(aes(color = factor(frequency)), shape = 17) + 
+  geom_smooth(method = "lm", formula = "y ~ x", fullrange = TRUE, color = "black", linewidth = 0.5, alpha = 0.3) + 
+  xlim(c(0, 12.5)) + 
+  labs(x = "Input signal peak-to-peak voltage [V]",
+       y = "Output signal peak-to-peak voltage [V]") + 
+  theme_pretty_thesis() + 
+  theme(panel.grid.major = element_line(),
+        panel.grid.minor = element_line(),
+        legend.box.background = element_rect(fill = "white")) + 
+  labs(color = "Frequency [Hz]")
+p
+```
 
 
 

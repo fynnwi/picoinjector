@@ -11,7 +11,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  eval = FALSE
 )
 ```
 
@@ -137,6 +138,16 @@ profile <- results %>%
 
 plot_heightprofile(profile)
 ```
+```{r, include=FALSE, eval=FALSE}
+plot_heightprofile(profile) +
+  theme_void()
+ggsave("output/plots/03_dektak_profile_raw.png", width = 3, height = 1.5, dpi = 300)
+```
+
+
+
+
+
 
 ## baseline correction
 
@@ -310,6 +321,23 @@ profileRescaled %>%
   plot_heightprofile() 
 ```
 
+```{r, include=FALSE, eval=FALSE}
+profileRescaled %>% 
+  baseline_regression(baselinePoints, loessSpan = 0.2) %>% 
+  subtract_baseline() %>% 
+  plot_heightprofile()  +
+  # theme_pretty_thesis() + 
+  theme_void()
+  # theme(axis.title = element_blank(),
+  #       axis.text = element_blank())
+ggsave("output/plots/03_dektak_profile_corrected.png", width = 3, height = 1.5, dpi = 300)
+```
+
+
+
+
+
+
 This function combines all the steps:
 
 ```{r}
@@ -396,6 +424,24 @@ resultsCorrected %>%
   ylim(c(0, 50000))
 ```
 
+
+
+```{r, include=FALSE, eval=FALSE}
+ resultsCorrected %>% 
+  filter(id == "00_job9945_eastwest.csv") %>% 
+  interpolate_valleys() %>% 
+  plot_heightprofile() + 
+  ylim(c(0, 50000))+ 
+  theme_pretty_thesis() + 
+  theme(axis.title = element_blank(),
+        axis.text = element_blank())
+ggsave("output/plots/03_dektak_profile_interpolated.png", width = 3, height = 1.5, dpi = 300)
+```
+
+
+
+
+
 Do this for all traces and show them in a single plot:
 
 ```{r, fig.width=10, fig.height=10}
@@ -420,6 +466,40 @@ ggplot(resultsInterpolated, aes(x = position, y = height, color = direction)) +
        color = "Trace")
 ```
 
+
+
+```{r}
+resultsInterpolated %>% 
+  mutate(position = position - 0.5 * max(position) - 0.5 * min(position))
+position = position - 0.5 * max(position) - 0.5 * min(position)
+```
+
+
+```{r}
+c <- min(resultsInterpolated$position) + 0.5 * abs(max(resultsInterpolated$position) - min(resultsInterpolated$position))
+resultsInterpolated %>% 
+  filter(wafer == "job9945") %>% 
+ggplot(aes(x = position, y = height, group = direction)) + 
+  geom_line(linewidth = 0.5) + 
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.5) +
+  geom_vline(xintercept = c, linetype = "dashed", linewidth = 0.5) + 
+  theme_pretty() + 
+  labs(x = "Lateral position [um]",
+       y = "Height [nm]",
+       color = "Trace") + 
+  # theme_pretty_thesis() + 
+  theme_void()  
+  # theme(axis.title = element_blank(),
+  #       axis.text = element_blank())
+ggsave("output/plots/03_dektak_profile_interpolated.png", width = 3, height = 1.5, dpi = 300)
+```
+
+
+
+
+
+
+
 For each wafer, four traces were measured, of which pairs of two should be identical to each other: trace south-north measures the same structure as north-south, and the same is true for traces east-west and west-east.
 In above graph, this similarity is not obvious, because the measurement directions are reversed (west-east goes left-to-right and east-west the other way around).
 Therefore, two of the four traces have to be reversed, so that the only measurement directions are _top-to-bottom_ and _left-to-right_.
@@ -434,7 +514,7 @@ mirror_and_center <- function(resultsInterpolated) {
     mutate(height = case_when(direction %in% c("southnorth", "eastwest") ~ rev(height),
                                         TRUE ~ height)) %>% 
     # center around zero
-    mutate(position = position - 0.5 * max(position)) %>% 
+    mutate(position = position - 0.5 * max(position) - 0.5 * min(position)) %>% 
     ungroup() %>% 
     return()
 }
@@ -471,6 +551,10 @@ heights %>%
        y = "Height [nm]",
        color = "Trace direction")
 ```
+
+
+
+
 
 
 The duplicate measurements of the horizontal and vertical structure will be averaged.
@@ -541,6 +625,26 @@ ggplot(heightsRadial, aes(x = position, y = height, color = quadrant)) +
        color = "Quadrant")
 ```
 
+```{r, include=FALSE, eval=FALSE}
+heightsRadial %>% 
+  filter(wafer == "job9946") %>% 
+  ggplot(aes(x = position, y = height, group = quadrant)) + 
+  geom_line(linewidth = 0.5) + 
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.5) + 
+  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.5) + 
+  theme_pretty() + 
+  labs(x = "Distance from wafer center [um]",
+       y = "Height [nm]",
+       color = "Quadrant") +   
+  theme_void()
+ggsave("output/plots/03_dektak_profile_flipped.png", width = 3, height = 1.5, dpi = 300)
+
+```
+
+
+
+
+
 
 Plot by RPM and spintime:
 
@@ -551,7 +655,7 @@ for (r in unique(heightsRadial$rpm)) {
     filter(rpm == r) %>% 
     ggplot(aes(x = position*1e-3, y = height*1e-3, color = wafer)) + 
     geom_vline(xintercept = 25.4, linetype = "dashed") +
-    geom_line(aes(group = interaction(wafer, quadrant), linetype = factor(spintime)), size = 0.5, alpha = 0.7) + 
+    geom_line(aes(group = interaction(wafer, quadrant), linetype = factor(spintime)), linewidth = 0.5, alpha = 0.7) + 
     labs(x = "Distance from wafer center [mm]",
          y = "Coating thickness [um]",
          linetype = "Spintime [s]",
@@ -565,6 +669,53 @@ for (r in unique(heightsRadial$rpm)) {
 ```
 
 
+```{r}
+waferNames <- heightsRadial %>% 
+  group_by(rpm, wafer) %>% 
+  summarise(.groups="drop") %>% 
+mutate("colorVar" = paste0("Wafer ", rep(c(1,2,3), 3)))
+waferNames
+```
+
+
+
+
+
+```{r, fig.width=9.31, fig.height=3.39}
+library(wesanderson)
+pal <- wes_palette("Zissou1")
+heightsRadial %>% 
+  left_join(waferNames, by = c("rpm", "wafer")) %>% 
+  mutate("rpm" = paste(rpm, "rpm"),
+         "spintime" = paste(spintime, "s")) %>% 
+  ggplot(aes(x = position*1e-3, y = height*1e-3)) + 
+    geom_vline(xintercept = 25.4, linetype = "dashed", color = "#999999") +
+  geom_line(aes(group = interaction(wafer, quadrant), linetype = spintime, color = colorVar)) + 
+  facet_wrap(~ rpm, nrow = 1, scales = "free_y") + 
+  
+  theme_pretty_thesis()+
+  scale_color_manual(values = wes_palette("Darjeeling1")) + 
+  coord_cartesian(expand = FALSE) +
+    ylim(c(0, 60)) + 
+  xlim(c(0, 26)) + 
+    labs(x = "Distance from wafer center [mm]",
+         y = "Coating thickness [µm]",
+         linetype = "Spin duration",
+         color = "Replicate",
+         title = "SU-8 3035* film thickness vs. spin speed and duration",
+         subtitle = "Dashed lines indicate wafer boundary") + 
+  theme(legend.background = element_blank(),
+        # legend.position = c(0,0), legend.justification = c(0,0), legend.direction = "horizontal",
+        legend.position = "bottom",
+        legend.box.margin = margin(),
+        legend.box.just = "right", legend.margin = margin())
+  
+```
+
+```{r, fig.width=9.31, fig.height=3.39}
+ggsave("output/plots/04_spincurves.png", dpi = 300, width =9.31, height = 3.39)
+ggsave("output/plots/04_spincurves.pdf", width = 6.2, height = 6.2/3)
+```
 
 
 

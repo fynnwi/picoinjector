@@ -4,14 +4,16 @@
 \alias{fads_reports_for_all}
 \title{Generate a FADS Report PDF For Every File in Folder}
 \usage{
-fads_reports_for_all(directory, outputDir)
+fads_reports_for_all(directory, outputDir, bins = 75)
 }
 \arguments{
 \item{directory}{A directory.}
 
 \item{outputDir}{Destination for the generated PDF files.}
+
+\item{bins}{Number of bins.}
 }
 \description{
 This function exploits that the first line in every FADS TSV file is:
-# iiiiiiiiiiiiii0000000
+"# iiiiiiiiiiiiii0000000"
 }

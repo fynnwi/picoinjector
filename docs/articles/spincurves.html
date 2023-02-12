@@ -22,7 +22,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
     
 
-    <nav class="navbar fixed-top navbar-dark navbar-expand-lg bg-primary"><div class="container">
+    <nav class="navbar fixed-top navbar-light navbar-expand-lg bg-light"><div class="container">
     
     <a class="navbar-brand me-2" href="../index.html">picoinjector</a>
 
@@ -49,8 +49,11 @@
     <a class="dropdown-item" href="../articles/spincurves.html">SU-8 3035 Spincurve Analysis</a>
     <a class="dropdown-item" href="../articles/logfiles.html">Log Files</a>
     <a class="dropdown-item" href="../articles/fads_analysis.html">FADS Analysis</a>
+    <a class="dropdown-item" href="../articles/fads_picoinjector_characterization.html">FADS-based Picoinjector Characterization</a>
     <a class="dropdown-item" href="../articles/electrical_engineering.html">Electrical Engineering</a>
     <a class="dropdown-item" href="../articles/comsol.html">COMSOL Simulations</a>
+    <a class="dropdown-item" href="../articles/pressures.html">Pressures</a>
+    <a class="dropdown-item" href="../articles/droplet_image_analysis.html">Droplet Image Analysis</a>
     <div class="dropdown-divider"></div>
     <h6 class="dropdown-header" data-toc-skip>Thesis</h6>
     <a class="dropdown-item" href="../articles/thesis_plots.html">Thesis Plots</a>
@@ -196,7 +199,7 @@ dataframe:</p>
 <span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="va">f</span>, skip <span class="op">=</span> <span class="fl">19</span>, show_col_types <span class="op">=</span> <span class="cn">FALSE</span>, col_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"position"</span>, <span class="st">"height"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">position</span>, <span class="va">height</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">)</span> <span class="co"># add the wafer id</span></span>
-<span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">results</span>, <span class="va">d</span><span class="op">)</span></span>
+<span>  <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">results</span>, <span class="va">d</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">results</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2,815,001 × 3</span></span></span>
@@ -459,7 +462,7 @@ order to level all the valleys to zero.</p>
 <span>  <span class="va">corrected</span> <span class="op">&lt;-</span> <span class="va">results</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op">==</span> <span class="va">traceId</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>    <span class="fu">baseline_correction</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="va">resultsCorrected</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">resultsCorrected</span>, <span class="va">corrected</span><span class="op">)</span></span>
+<span>  <span class="va">resultsCorrected</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">resultsCorrected</span>, <span class="va">corrected</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>This function can be used to plot the baseline-corrected profiles for
 every wafer:</p>
@@ -522,7 +525,7 @@ values from the surrounding data:</p>
 <span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="va">resultsCorrected</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op">==</span> <span class="va">traceId</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> </span>
 <span>    <span class="fu">interpolate_valleys</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="va">resultsInterpolated</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">resultsInterpolated</span>, <span class="va">r</span><span class="op">)</span></span>
+<span>  <span class="va">resultsInterpolated</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">resultsInterpolated</span>, <span class="va">r</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">resultsInterpolated</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">position</span>, y <span class="op">=</span> <span class="va">height</span>, color <span class="op">=</span> <span class="va">direction</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>

@@ -18,7 +18,7 @@ theme_pretty <- function() {
           # legend.box.just = "right",
           legend.margin =  margin(t = 0.5, b = 0.5, r = 0.5, l = 0.5, unit='cm'),
           legend.background = element_rect(fill="transparent"),
-          # legend.box.background = element_rect(fill = "white"),
+          legend.box.background = element_rect(fill = "transparent"),
           legend.box.spacing = margin(),
           legend.key.size = unit(0.3, "cm")
     )
@@ -40,16 +40,20 @@ theme_pretty_thesis <- function() {
                                           size = 0.5, linetype = "solid"),
           #plot.background = element_rect(fill = "#E8C837"),
           plot.margin = margin(t = 0, unit='cm'),
-          # legend.position = c(1, 1),
-          # legend.justification = c("right", "top"),
-          # legend.box.just = "right",
-          legend.margin =  margin(t = 0.5, b = 0.5, r = 0.5, l = 0.5, unit='cm'),
-          legend.background = element_rect(fill="transparent"),
+          legend.position = c(1, 0),
+          legend.justification = c(1,0),
+          legend.box.just = "right",
+          # legend.margin =  margin(t = 0.2, b = 0.2, r = 0.2, l = 0.2, unit='cm'),
+          legend.background = element_rect(fill="white", color = "black", linewidth = 0.25),
+          legend.box.margin = margin(b=0.5, r=0.5, t = 0.5, l = 0.5, unit="cm"),
           # legend.box.background = element_rect(fill = "white"),
-          legend.box.spacing = margin(),
+          # legend.box.spacing = margin(b=0.5, r=0.5, unit="cm"),
           legend.key.size = unit(0.3, "cm"),
           plot.tag.position = c(0,1),
-          plot.tag = element_text(vjust = 1, hjust = 0))
+          plot.tag = element_text(vjust = 1, hjust = 0),
+          strip.background = element_rect(fill = "#dad7cb"),
+          strip.text = element_text(size = 8)
+          )
 }
 
 #' Custom ggplot2 Theme For Package Figures

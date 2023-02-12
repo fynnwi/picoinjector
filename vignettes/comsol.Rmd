@@ -112,5 +112,60 @@ d %>%
 ```
 
 
+### Parametric sweep over radius:
+
+```{r}
+d <- readr::read_table("data/comsol/03_tubing_radius_sweep.txt", skip = 1, col_names = c("radius", "q_numeric")) %>% 
+  dplyr::mutate("q_hagen_poisseuille" = q_hagen_poisseuille(10000, radius*1e-3, 0.1, mu))
+d %>% 
+  tidyr::pivot_longer(c(q_hagen_poisseuille, q_numeric), names_to = "approach", values_to = "flowrate") %>% 
+  ggplot(aes(x = radius, y = flowrate*1e6, color = approach)) + 
+  geom_line() + 
+  geom_point() + 
+  scale_color_discrete(labels = c("Hagen-Poisseuille", "Simulation")) + 
+  theme_pretty_thesis() + 
+  labs(y = "Flow rate [ml/s]",
+       x = "Channel radius [mm]",
+       color = "Method")
+```
+
+
+Calculate deviations
+
+```{r}
+d %>% 
+  dplyr::mutate("relative_difference" = (q_numeric - q_hagen_poisseuille) / q_hagen_poisseuille * 100)
+```
+
+```{r}
+deltaP <- 10000 # Pa 
+d <- readr::read_table("data/comsol/04_tubing_radius_sweep_smaller.txt", skip = 1, col_names = c("radius", "q_numeric")) %>% 
+  dplyr::mutate("q_hagen_poisseuille" = q_hagen_poisseuille(deltaP, radius*1e-3, 0.1, mu))
+d %>% 
+  tidyr::pivot_longer(c(q_hagen_poisseuille, q_numeric), names_to = "approach", values_to = "flowrate") %>% 
+  ggplot(aes(x = radius, y = flowrate*1e6, color = approach)) + 
+  geom_line() + 
+  geom_point() + 
+  scale_color_discrete(labels = c("Hagen-Poisseuille", "Simulation")) + 
+  theme_pretty_thesis() + 
+  labs(y = "Flow rate [ml/s]",
+       x = "Channel radius [mm]",
+       color = "Method")
+```
+
+
+Q = P/R
+R = 
+
+Correspondingly, the hydraulic resistance of any of these channel configurations can be computed from flowrate and pressure.
+$$Q = \frac{\Delta p}{R_h} \iff R_h = \frac{\Delta p}{Q}$$
+```{r}
+d %>% 
+  dplyr::mutate("r_numeric" = deltaP / q_numeric,
+                "r_hagen_poisseuille" = deltaP / q_hagen_poisseuille)
+```
+
+
+
 
 ## References
