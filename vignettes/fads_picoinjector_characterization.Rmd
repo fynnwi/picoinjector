@@ -796,12 +796,12 @@ grn %>%
   
 ```
 
-
-
-
 ```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
 ggsave("output/plots/04_picoinjector_characterization_histogram.png", width = 9.39, height = 3.31)
 ```
+
+MAke the same plot, but with volume change instead of ms width:
+
 
 
 
@@ -1325,3 +1325,15 @@ If I normalize the width by the droplet velocity, I should be able to superimpos
 
 
 Argument (if the signal-width-derived droplet size deviates more )
+
+
+Average number of droplets per file:
+
+```{r}
+grn %>% 
+  dplyr::group_by(file) %>% 
+  summarize(n_droplets = n()) %>% 
+  pull(n_droplets) %>% 
+  mean()
+```
+

@@ -234,8 +234,8 @@ occu %>%
   geom_point(aes(color = name, shape = name)) + 
   facet_wrap(~file, scales = "free", nrow = 2) + 
   theme_pretty_thesis() + 
-  scale_color_manual(values = c("#0065bd", "black"), labels = c("Acquired data", "Poisson distribution")) +
-  scale_shape_manual(values = c(1,2), labels = c("Acquired data", "Poisson distribution")) +
+  scale_color_manual(values = c("#0065bd", "black"), labels = c("Observed droplet occupancy", "Poisson distribution")) +
+  scale_shape_manual(values = c(1,2), labels = c("Observed droplet occupancy", "Poisson distribution")) +
 
   labs(x = "Droplet occupancy",
        y = "Fraction of total population") + 
@@ -388,5 +388,4 @@ But what if these are not injected due to being too small?
 
 Really cool: The droplet width changes due to picoinjection, but not the area of the generated signal, emphasizing how quantitative this method is.
 It seems it can be used to really measure the _amount_ of dye inside a droplet. (See Signal5)
-
 
