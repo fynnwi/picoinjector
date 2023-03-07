@@ -529,10 +529,46 @@ d %>%
 
 
 
+## Thesis plots
+
+```{r}
+textwidth <- 6.14
+```
 
 
 
-  # filter(red > quantile(red, 0.025) & red < quantile(red, 0.975)) %>%
+```{r}
+d %>% 
+  group_by(nd_file, incubation, blue) %>% 
+  summarise(n_intact = sum(intact_cell),
+            n_drops = n(),
+            percentage_intact = n_intact/n_drops*100,
+            .groups = "drop") %>% 
+  group_by(nd_file, incubation) %>% 
+  dplyr::mutate(incubation = stringr::str_sub(incubation, 1, 5)) %>% 
+  ggplot(aes(x = incubation, y = percentage_intact, fill = blue)) + 
+  geom_col(position = position_dodge(width = 0.6), alpha = 1, width = 0.5) +
+  scale_fill_manual(values = c("darkseagreen", "cyan3"), labels = c("Atto488 (T7 phage)", "mTurquoise (control)"))+
+  theme_pretty_thesis() + 
+  theme(legend.position = "bottom", legend.box.margin = margin(),
+        plot.margin = margin(1,1,1,1),
+        legend.margin = margin(),
+        legend.background = element_blank())+
+  guides(fill = guide_legend(title = NULL, direction = "horizontal")) + 
+  labs(x = "Incubation time [h]",
+       y = "Percentage of droplets containing intact cell",
+       # title = "Phage droplets contain fewer intact bacteria cells after incubation, compared to control group",
+       fill = "Droplet content")
+```
+
+
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=4.1}
+ggsave("output/thesis_plots/04_phage_results.pdf", width = textwidth/3*2, height = textwidth/2)
+ggsave("/home/fynn/Code/masterthesis/figures/04_phage_results.pdf", width = textwidth/3*2, height = textwidth/2)
+```
+
+
 
 
 

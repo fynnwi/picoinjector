@@ -56,6 +56,38 @@ theme_pretty_thesis <- function() {
           )
 }
 
+
+#' Custom ggplot2 Theme For Thesis Figures
+#'
+#' @export
+#' @importFrom ggplot2 theme_bw theme element_text element_blank element_rect element_line margin unit
+theme_pretty_thesis2 <- function() {
+  theme_bw() +
+    theme(axis.title = element_text(size = 9, color = "black"), axis.text = element_text(size = 8, color = "black"),
+          legend.title = element_text(size = 9), legend.text = element_text(size = 8),
+          text=element_text(size=8),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = "white", colour = "black",
+                                          size = 0.5, linetype = "solid"),
+          #plot.background = element_rect(fill = "#E8C837"),
+          plot.margin = margin(t = 0, unit='cm'),
+          legend.position = c(1, 0),
+          legend.justification = c(1,0),
+          legend.box.just = "right",
+          # legend.margin =  margin(t = 0.2, b = 0.2, r = 0.2, l = 0.2, unit='cm'),
+          legend.background = element_rect(fill="white", color = "black", linewidth = 0.25),
+          legend.box.margin = margin(b=0.2, r=0.2, t = 0.2, l = 0.2, unit="cm"),
+          # legend.box.background = element_rect(fill = "white"),
+          # legend.box.spacing = margin(b=0.5, r=0.5, unit="cm"),
+          legend.key.size = unit(0.3, "cm"),
+          plot.tag.position = c(0,1),
+          plot.tag = element_text(vjust = 1, hjust = 0),
+          strip.background = element_rect(fill = "#dad7cb"),
+          strip.text = element_text(size = 8)
+          )
+}
+
 #' Custom ggplot2 Theme For Package Figures
 #'
 #' @return A patchwork object.

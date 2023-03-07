@@ -21,6 +21,7 @@ library(dplyr)
 library(readr)
 library(ggplot2)
 library(wesanderson)
+library(patchwork)
 ```
 
 
@@ -253,7 +254,7 @@ ggsave("output/plots/04_injecting_cells_poisson.png", width = 9.31, height = 3.3
 
 ```{r}
 tidyr::crossing("k" = seq(0,10),
-                "lambda" = c(0.05, 0.25, 1, 2, 5, 20))
+                "lambda" = c(0.05, 0.25, 1, 2, 5, 20)) %>% 
   dplyr::mutate("p" = dpois(k, lambda)) %>% 
   ggplot(aes(x = k, y = p)) + 
   geom_line(aes(color = factor(lambda)), linetype = "dashed") + 
@@ -274,10 +275,88 @@ tidyr::crossing("k" = seq(0,10),
 
 
 
+### Thesis plots
+
+```{r}
+textwidth <- 6.14
+```
+
+04_bacteria_results
+
+
+```{r, fig.width = 4.57, fig.height=3.39}
+p1 <- flowrates %>% 
+  dplyr::left_join(occupancies, by = "file") %>% 
+  dplyr::mutate("volume" = occupancy_to_picoliter(occupancy, concentration)) %>% 
+  dplyr::filter(!file %in% paste0("Signal_", 4)) %>% 
+  ggplot(aes(x = p_water/(q_oil_est+q_emulsion), y = volume)) + 
+  geom_smooth(method = "lm", formula = y~x, linetype = "dashed", color = "black", linewidth = 0.5, se = FALSE) +  
+  geom_point(aes(fill = factor(q_emulsion)), shape = 21, size = 4) + 
+  theme_pretty_thesis2() + 
+  guides(fill = guide_legend(direction = "horizontal", title.position = "top"))+
+  scale_fill_manual(values = c("#def5e5", "#357ba2"))+
+  labs(x = "Relative injection pressure [mbar/µL/h]",
+       y = "Injected volume [pL]",
+       fill = "Emulsion flow rate [µl/h]")
+
+p2 <- occu %>% 
+  dplyr::filter(file == "Signal_5") %>% 
+  tidyr::pivot_longer(c(percentage, poisson)) %>% 
+  mutate("file" = factor(file, levels = paste0("Signal_", seq(0,10)))) %>% 
+  ggplot(aes(x = n_cells, y = value)) + 
+  geom_line(aes(color = name), linewidth = 0.3) + 
+  geom_point(aes(color = name, shape = name)) + 
+  theme_pretty_thesis2() + 
+  scale_color_manual(values = c("#0065bd", "black"), labels = c("Observed droplet occupancy", "Poisson distribution")) +
+  scale_shape_manual(values = c(1,2), labels = c("Observed droplet occupancy", "Poisson distribution")) +
+
+  labs(x = "Droplet occupancy",
+       y = "Fraction of total population") +
+  # guides(color = guide_legend(title = NULL)) +
+  theme(legend.position = c(1,1), legend.justification = c(1,1),legend.margin = margin(t=0.1, l=0.2, r = 0.2, b = 0.2, unit = "cm"),  legend.title = element_blank(), legend.key.width = unit(0.5, "cm"))
+p1
+p2
+```
+
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=3.09}
+p1 + theme(plot.margin = margin(r = 0.4, unit = "cm"))+p2 + 
+  plot_annotation(tag_levels = "A",
+                  theme = theme(plot.margin = margin(1,1,1,1, unit = "mm")))
+ggsave("output/thesis_plots/04_bacteria_results.pdf", width = textwidth, height = textwidth/2)
+ggsave("/home/fynn/Code/masterthesis/figures/04_bacteria_results.pdf", width = textwidth, height = textwidth/2)
+```
 
 
 
+si_bacteria_poisson_occupancy
 
+```{r, fig.width=6.14, fig.height=4.1}
+p <- occu %>% 
+  tidyr::pivot_longer(c(percentage, poisson)) %>% 
+  mutate("file" = factor(file, levels = paste0("Signal_", seq(0,10)))) %>% 
+  ggplot(aes(x = n_cells, y = value)) + 
+  geom_line(aes(color = name), linewidth = 0.3) + 
+  geom_point(aes(color = name, shape = name)) + 
+  facet_wrap(~file, nrow = 2) + 
+  theme_pretty_thesis() + 
+  scale_color_manual(values = c("#0065bd", "black"), labels = c("Observed droplet occupancy", "Poisson distribution")) +
+  scale_shape_manual(values = c(1,2), labels = c("Observed droplet occupancy", "Poisson distribution")) +
+
+  labs(x = "Droplet occupancy",
+       y = "Fraction of total population") + 
+  # guides(color = guide_legend(title = NULL)) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.box.margin = margin(), legend.title = element_blank(), legend.key.width = unit(0.5, "cm"),
+        plot.margin = margin(1,1,1,1))
+p
+```
+
+
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=3.09}
+ggsave("output/thesis_plots/si_bacteria_poisson_occupancy.pdf", width = textwidth, height = textwidth/3*2)
+ggsave("/home/fynn/Code/masterthesis/figures/si_bacteria_poisson_occupancy.pdf", width = textwidth, height = textwidth/3*2)
+```
 
 
 

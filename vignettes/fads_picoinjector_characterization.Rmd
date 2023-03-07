@@ -779,7 +779,7 @@ ggsave("output/plots/04_picoinjector_characterization_volume.png", width = 9.39,
 Make overlapping histogram plot:
 
 ```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
-grn %>% 
+pHist <- grn %>% 
   filter(q_emulsion == 25,
          ac_field == TRUE) %>% 
   ggplot(aes(x = width*1e3)) + 
@@ -793,7 +793,7 @@ grn %>%
        y = "Number of droplets",
        fill = "Injection pressure [mbar]",
        title = "Picoinjected volume controlled by injection pressure at fixed droplet velocity")
-  
+pHist 
 ```
 
 ```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
@@ -1051,7 +1051,8 @@ make_fads_table(grn, red) %>%
 
 
 ```{r}
-d <- fads_read_tsv("~/nyancat_tsv/20230126/Recorded_data_10.txt")
+# d <- fads_read_tsv("~/nyancat_tsv/20230126/Recorded_data_10.txt")
+d <- fads_read_tsv("/run/media/fynn/T7/masterthesis/Nyancat/20230126/Recorded_data_10.txt")
 d
 ```
 
@@ -1142,7 +1143,7 @@ ggsave("output/plots/04_picoinjector_characterization_exemplary_fads.png", width
 
 
 ```{r}
-p1 <- grn %>% 
+p4 <- grn %>% 
   dplyr::filter(file == "Signal_10") %>% 
   ggplot(aes(x=width*1e3)) + 
   # geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.5, position = "identity", show.legend = F) + 
@@ -1157,11 +1158,11 @@ p1 <- grn %>%
        fill = "Electric field", 
        title = "Signal width of injected droplet increases...",
        tag = "A")
-p1
+p4
 ```
 
 ```{r}
-p2 <- grn %>% 
+p5 <- grn %>% 
   dplyr::filter(file == "Signal_10") %>% 
   ggplot(aes(x=area*1e3)) + 
   geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.6, position = "identity", color = "black", linewidth = 0.3) + 
@@ -1176,18 +1177,300 @@ p2 <- grn %>%
        title = "... but area under signal decreases upon injection",
        fill = "Electric field",
        tag = "B")
-p2
+p5
 ```
 
 
 
 
 ```{r, eval=FALSE, fig.width=9.39, fig.height=3.31}
-p1 + theme(plot.margin = margin(r = 0.5, unit = "cm")) + p2
+p4 + theme(plot.margin = margin(r = 0.5, unit = "cm")) + p5
 ggsave("output/plots/04_picoinjector_characterization_width_area.png", width = 9.39, height = 3.31)
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Make the thesis plots
+
+
+```{r}
+textwidth <- 6.14
+```
+
+
+04_black_ink_results
+
+```{r}
+p1 <- dropletSummary %>% 
+  filter(ac_field == TRUE) %>% 
+  mutate("water_oil_ratio" = p_water/(q_emulsion+q_oil_est),
+         "injected_volume" = sapply(median_diameter * 1e-6, get_volume_change, 30e-6) * 1e15) %>% 
+  ggplot(aes(x = water_oil_ratio, y = injected_volume)) + 
+  # scale_fill_gradientn(colours = pal) + 
+  scale_fill_viridis_d(direction = -1, option = "G")+
+  geom_smooth(method = "lm", formula = y~x, linetype = "dashed", color = "black", linewidth = 0.5, se = FALSE) +  
+  # geom_hline(yintercept = 30, linetype = "dashed") + 
+  geom_point(aes(fill = factor(q_emulsion)), shape = 21, size = 4) + 
+  theme_pretty_thesis2() + 
+  theme(legend.position = c(0,1), legend.justification = c(0,1)) + 
+  labs(x = "Relative injection pressure [mbar/µL/h]",
+       y = "Injected volume [pL]",
+       fill = "Emulsion flow rate [µl/h]") +
+  ylim(c(0,15)) + 
+  guides(fill = guide_legend(title.position = "top", direction = "horizontal"))
+
+p2 <- dropletSummary %>% 
+  filter(ac_field == TRUE) %>% 
+  mutate("water_oil_ratio" = p_water/p_oil,
+         "injected_volume" = sapply(median_diameter * 1e-6, get_volume_change, 30e-6) * 1e15) %>% 
+  ggplot(aes(x = injected_volume, y = intensity_median)) + 
+  geom_smooth(method = "lm", formula = y~x, linetype = "dashed", color = "black", linewidth = 0.5, se = FALSE) +  
+  # geom_hline(yintercept = 30, linetype = "dashed") + 
+  geom_point(aes(fill = intensity_median), shape = 21, size = 4) + 
+  # scale_fill_viridis_c() +
+  # scale_fill_gradientn(colours = pal) +
+  # scale_fill_distiller(type = "seq",
+  #                       palette = "Greys")+
+  scale_fill_viridis_c(option = "E")+
+  theme_pretty_thesis2() + 
+  labs(x = "Injected volume [pL]",
+       y = "Median droplet gray value",
+       fill = "Median droplet intensity")+
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", label.hjust = 0.5,
+                               barwidth = 1.2, default.unit = "in"))+
+  theme(legend.position = c(1,1),
+        legend.justification = c(1,1))
+  # guides(fill = 
+  #          guide_legend(title.position = "top", direction= "horizontal", ))
+
+p1
+p2
+```
+
+
+Patchwork
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=3.09}
+p1 + theme(plot.margin = margin(r = 0.4, unit = "cm"))+p2 + 
+  plot_annotation(tag_levels = "A",
+                  theme = theme(plot.margin = margin(1,1,1,1, unit = "mm")))
+ggsave("output/thesis_plots/04_black_ink_results.pdf", width = textwidth, height = textwidth/2)
+ggsave("/home/fynn/Code/masterthesis/figures/04_black_ink_results.pdf", width = textwidth, height = textwidth/2)
+```
+
+
+
+
+
+
+04_attodye_results_1
+
+```{r}
+# plasma_pal <- c("white", viridis::magma(n = 5, direction = -1, begin = 0, end = 0.8))
+plasma_pal <- c("#F7F7F7", viridis::magma(n = 5, direction = -1, begin = 0, end = 0.9))
+
+p1 <- d %>% 
+  ggplot(aes(x = green, y = red)) + 
+  geom_bin2d(bins = 100) + 
+  theme_pretty_thesis2() + 
+  theme(plot.margin = margin(b=0.4, unit = "cm"),
+        legend.position = c(1,1), legend.justification = c(1,1)) + 
+  # guides(fill = guide_colorbar(direction = "horizontal", title.position = "left", title.vjust = 1, barwidth = 1.2, default.unit = "in", label.theme = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))) + 
+  guides(fill = guide_colorbar(direction = "vertical", title.position = "top", title.vjust = 1, barheight = 0.8, default.unit = "in")) + 
+  scale_fill_gradientn(colors = plasma_pal) + 
+  labs(x = "Injected dye signal [V]",
+       y = "Barcode dye signal [V]",
+       fill = "Droplets") + 
+  coord_cartesian(expand = FALSE, xlim = c(0, 0.15))
+
+
+
+p2 <- d %>% 
+  dplyr::mutate("time" = time - min(time)) %>% 
+  dplyr::mutate("time"= time/max(time)*79.53461) %>% 
+  # remove outliers
+  # filter(red > quantile(red, 0.025) & red < quantile(red, 0.975)) %>%
+  # filter(green > quantile(green, 0.025) & green < quantile(green, 0.975)) %>%
+  ggplot(aes(x = time, y = green)) + 
+  geom_bin2d(bins = 100, show.legend = FALSE) + 
+  theme_pretty_thesis2() + 
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", barwidth = 1.2, default.unit = "in", label.theme = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))) + 
+  theme(legend.position = c(0,0), legend.justification = c(0,0),
+          legend.background = element_rect(fill="transparent", color = "white", linewidth = 0.25), 
+          legend.box.margin = margin(b=0.1, r=0.1, t = 0.1, l = 0.1, unit="cm")) + 
+  # scale_fill_viridis_c(option = "A", direction = -1)+
+  # scale_fill_gradient(low = "white", high = "#F21A00") +
+  scale_fill_gradientn(colors = plasma_pal, limits = c(0, 499)) + 
+  labs(x = "Time [s]",
+       y = "Injected dye signal [V]",
+       fill = "Number of droplets") + 
+  coord_cartesian(expand = FALSE)
+
+p3 <- d %>% 
+  dplyr::mutate("time" = time - min(time)) %>% 
+  dplyr::mutate("time"= time/max(time)*79.53461) %>% 
+  # remove outliers
+  # filter(red > quantile(red, 0.025) & red < quantile(red, 0.975)) %>%
+  # filter(green > quantile(green, 0.025) & green < quantile(green, 0.975)) %>%
+  ggplot(aes(x = time, y = width)) + 
+  geom_bin2d(bins = 100, show.legend = FALSE) + 
+  theme_pretty_thesis2() + 
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", barwidth = 1.2, default.unit = "in", label.theme = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))) + 
+  theme(legend.position = c(0,0), legend.justification = c(0,0),
+          legend.background = element_rect(fill="transparent", color = "white", linewidth = 0.25), 
+          legend.box.margin = margin(b=0.1, r=0.1, t = 0.1, l = 0.1, unit="cm")) + 
+  # scale_fill_viridis_c(option = "A", direction = -1)+
+  # scale_fill_gradient(low = "white", high = "#F21A00") +
+  scale_fill_gradientn(colors = plasma_pal, limits = c(0, 499)) + 
+  labs(x = "Time [s]",
+       y = "Droplet width [ms]",
+       fill = "Number of droplets") + 
+  coord_cartesian(ylim = c(0,1), expand = F)
+
+p4 <- grn %>% 
+  dplyr::filter(file == "Signal_10") %>% 
+  ggplot(aes(x=width*1e3)) + 
+  # geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.5, position = "identity", show.legend = F) + 
+  geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.6, position = "identity", color = "black", linewidth = 0.3, show.legend = FALSE) + 
+  theme_pretty_thesis2() + 
+  coord_cartesian(expand = F, ylim = c(0, 11000)) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        plot.margin = margin(t = 0.4, r = 0.4, b= 0.4, unit = "cm")) + 
+  # scale_fill_manual(values = c("#FF0000", "#00A08A"), labels = c("OFF", "ON")) + 
+  scale_fill_viridis_d(option = "G", begin = 0, end = 1, direction = 1) + 
+  labs(x = "Droplet width [ms]",
+       y = "Number of droplets",
+       fill = "Electric field")
+
+p5 <- grn %>% 
+  dplyr::filter(file == "Signal_10") %>% 
+  ggplot(aes(x=area*1e3)) + 
+  geom_histogram(aes(fill = ac_field), bins = 100, alpha = 0.6, position = "identity", color = "black", linewidth = 0.3) + 
+  theme_pretty_thesis2() +
+  coord_cartesian(expand = F, ylim = c(0, 11000)) + 
+  xlim(c(0, 1.2e-2)) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1)) + 
+  # scale_fill_manual(values = c("#FF0000", "#00A08A"), labels = c("OFF", "ON")) + 
+  scale_fill_viridis_d(option = "G", begin = 0, end = 1, direction = 1, labels = c("OFF", "ON")) + 
+  labs(x = "Barcode dye signal area [V ms]",
+       y = "Number of droplets",
+       fill = "Electric field")
+
+pHist <- grn %>% 
+  filter(q_emulsion == 25,
+         ac_field == TRUE) %>% 
+  ggplot(aes(x = width*1e3)) + 
+  geom_histogram(aes(fill = factor(p_water)), position = "identity", alpha = 0.8, bins = 100, color = "black", linewidth = 0.3) + 
+  scale_fill_viridis_d(option = "A", direction = -1)+
+  theme_pretty_thesis2() + 
+  guides(fill = guide_legend(direction = "horizontal", nrow = 3, byrow = T, title.position = "top"))+
+  theme(legend.position = c(1,1), legend.justification = c(1,1)) + 
+  coord_cartesian(expand = F, xlim=c(0.5, 1.8), ylim = c(0, 5300))+
+  labs(x = "Droplet signal width after injection [ms]",
+       y = "Number of droplets",
+       fill = "Injection pressure [mbar]")
+
+p1
+p2
+p3
+p4
+p5
+pHist
+```
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=6.14}
+layout <- "
+AA
+BC
+DE
+FF
+"
+wrap_plots(p1, p2, p3, p4, p5, pHist) +
+  plot_layout(design = layout) + 
+  plot_annotation(tag_levels = 'A',
+                  theme = theme(plot.margin = margin(t = 1,l = 1,b = 1,r = 4, unit = "mm")))
+ggsave("output/thesis_plots/04_attodye_results_1.pdf", width = textwidth, height = textwidth/3*5)
+ggsave("/home/fynn/Code/masterthesis/figures/04_attodye_results_1.pdf", width = textwidth, height = textwidth/3*4)
+```
+
+
+
+
+
+04_attodye_results_2
+
+
+```{r}
+p1 <- drops %>% 
+  dplyr::mutate("width_sd_um" = width_green_injected_sd * velocity * 1e6,
+                "injected_volume_sd" = pi * 10 * 15 * width_sd_um * 1e-3) %>%
+  ggplot(aes(x = p_injection_relative, y = injected_volume)) + 
+  geom_smooth(method = "lm", formula = y~x, color = "black", linetype = "dashed", se = FALSE, linewidth = 0.5) + 
+  # geom_errorbar(aes(ymin = injected_volume - injected_volume_sd, ymax = injected_volume + injected_volume_sd)) + 
+  geom_point(aes(fill = frequency), shape = 22, size = 3) +
+  # scale_fill_gradientn(colours = pal, trans = "log",
+  #                      breaks = c(250, 500, 1000, 2000, 3000)) + 
+  scale_fill_viridis_c(direction = -1, option = "G")+
+  theme_pretty_thesis2() + 
+  # guides(fill = guide_legend(direction = "horizontal", title.position = "top", byrow = T)) +
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", label.hjust = 0.5,
+                               barwidth = 1.2, default.unit = "in"))+
+  labs(x = expression("Relative injection pressure "* p["injection"]/Q["total"] * " [mbar/µL/h]"),
+       y = "Injected volume [pL]",
+       fill = "Throughput [droplets/s]") + 
+  # xlim(c(0,0.8)) + 
+  theme(legend.position = c(0,1), legend.justification = c(0,1))
+
+p2 <- drops %>% 
+  dplyr::mutate("width_sd_um" = width_green_injected_sd * velocity * 1e6,
+                "injected_volume_sd" = pi * 10 * 15 * width_sd_um * 1e-3) %>%
+  ggplot(aes(y = p_injection_relative, x = frequency)) + 
+  # geom_errorbar(aes(ymin = injected_volume - injected_volume_sd, ymax = injected_volume + injected_volume_sd)) + 
+  geom_point(aes(fill = injected_volume), shape = 22, size = 3) +
+  # scale_fill_gradientn(colours = pal, trans = "log",
+                       # breaks = c(250, 500, 1000, 2000, 3000)) + 
+  # scale_fill_gradientn(colors = pal) +
+  scale_fill_viridis_c(option = "A", direction = -1) + 
+  theme_pretty_thesis2() + 
+  # guides(fill = guide_legend(direction = "horizontal", title.position = "top", byrow = T)) +
+  guides(fill = guide_colorbar(direction = "horizontal", title.position = "top", label.hjust = 0.5,
+                               barwidth = 1.2, default.unit = "in"))+
+  labs(y = expression("Relative injection pressure [mbar/µL/h]"),
+       x = "Frequency [droplets/s]",
+       fill = "Injected volume [pL]") +
+  # xlim(c(0,0.8)) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1))
+p1
+p2
+```
+
+
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=4.1}
+p1 + theme(plot.margin = margin(r = 0.4, unit = "cm")) + p2 + 
+  plot_annotation(tag_levels = "A",
+                  theme = theme(plot.margin = margin(1,1,1,1, unit = "mm")))
+ggsave("output/thesis_plots/04_attodye_results_2.pdf", width = textwidth, height = textwidth/2)
+ggsave("/home/fynn/Code/masterthesis/figures/04_attodye_results_2.pdf", width = textwidth, height = textwidth/2)
+```
 
 
 
