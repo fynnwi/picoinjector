@@ -28,7 +28,7 @@ Global settings:
 - figure width (= latex textwidth)
 
 ```{r}
-textwidth <- 6.14
+textwidth <- 6.10356
 # wes_palette("Zissou1")
 ```
 
@@ -61,7 +61,7 @@ ggplot() +
   # geom_tile(aes(x = 20e-6, y = 0, width = 20e-6, height = Inf), color = "red") +
   scale_x_log10(breaks = xBreaks) + 
   scale_y_continuous(breaks = c(), limits = c(0,1), expand = expansion(add = 0)) + 
-  theme_pretty_thesis() + 
+  theme_pretty_thesis2() + 
   theme(axis.title.y = element_blank())
   # annotation_logticks(side = "b", color = "gray")
 ```
@@ -69,7 +69,7 @@ ggplot() +
 Save as PDF:
 
 ```{r}
-grDevices::pdf(file = "output/plots/02_relative_sizes.pdf", width = textwidth, height = textwidth/3, )
+grDevices::pdf(file = "output/thesis_plots/02_relative_sizes.pdf", width = textwidth, height = textwidth/3, )
 print(last_plot())
 grDevices::dev.off()
 ```
@@ -88,7 +88,7 @@ p1 <- tidyr::crossing("k" = seq(0,6),
   geom_point(aes(fill = factor(lambda)), shape = 21) + 
   scale_x_continuous(breaks = seq(0,6)) + 
   # scale_y_continuous(breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) + 
-  theme_pretty_thesis() + 
+  theme_pretty_thesis2() + 
   scale_fill_manual(values = wes_palette("Darjeeling1")) + 
   scale_color_manual(values = wes_palette("Darjeeling1")) + 
   theme(
@@ -117,7 +117,7 @@ p2 <- tibble::tibble("lambda" = seq(0,2,0.01),
   geom_line() +
   scale_linetype_discrete(labels = c(expression(p(k == 0)), expression(p(k==1)), expression(p(k >= 1))),
                           guide = guide_legend(title = NULL, title.position = "left")) + 
-  theme_pretty_thesis() + 
+  theme_pretty_thesis2() + 
   theme(legend.position = c(1,1),
         legend.justification = c(1,1),
         legend.key.width = unit(0.5, "cm")) +
@@ -133,16 +133,10 @@ Patchwork:
 ```{r, fig.width=6, fig.height=3}
 p1 + p2 &
   theme(plot.margin = margin(r = 4, t = 3))
+
+ggsave("output/thesis_plots/02_poisson_distribution.pdf", width = textwidth, height = textwidth/2)
+ggsave("/home/fynn/Code/masterthesis/figures/02_poisson_distribution.pdf", width = textwidth, height = textwidth/2)
 ```
-
-
-```{r}
-grDevices::pdf(file = "output/plots/02_poisson_distribution.pdf", width = textwidth, height = textwidth/2, )
-print(last_plot())
-grDevices::dev.off()
-```
-
-
 
 
 

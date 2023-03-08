@@ -532,8 +532,110 @@ d %>%
 ## Thesis plots
 
 ```{r}
-textwidth <- 6.14
+textwidth <- 6.10356
 ```
+
+04_phage_bleedthrough
+
+```{r}
+p1 <- dwide %>% 
+  dplyr::filter(incubation == hms::hms(hours = 2, minutes = 20)) %>%
+  ggplot(aes(x = mean_GFP))  +
+  geom_vline(xintercept = 5000, color = "darkseagreen", linetype = "dashed") + 
+  geom_histogram(bins = 100, alpha = 0.75) + 
+  theme_pretty_thesis2() + 
+  labs(x = "Mean GFP intensity in a droplet",
+       y = "Droplets")
+
+p2 <- dwide %>% 
+  dplyr::filter(incubation == hms::hms(hours = 2, minutes = 20)) %>%
+  ggplot(aes(x = mean_CFP))  +
+  geom_histogram(bins = 100, alpha = 0.75) + 
+  theme_pretty_thesis2() + 
+  theme(plot.margin = margin(t = 0.2, r = 0.4, b = 0.4, unit = "cm"))+
+  labs(x = "Mean CFP intensity in a droplet",
+       y = "Droplets")
+
+p3 <- dwide %>% 
+  dplyr::filter(incubation == hms::hms(hours = 2, minutes = 20)) %>%
+  ggplot(aes(x = mean_GFP, y = mean_CFP)) + 
+  geom_vline(xintercept = 5000, linetype = "dashed", color = "darkseagreen") +
+  geom_point(aes(color = blue), alpha = 0.1) +
+  scale_color_manual(values = c("darkseagreen", "cyan3"), labels =rev(c( "mTurquoise", "Atto488 (bleed-through)"))) +
+  # scale_color_viridis_d(begin = 0.3, end = 0.8) +
+  geom_abline(slope = 0.1, linetype = "dashed", color = "cyan3") +
+  theme_pretty_thesis2()  + 
+  guides(color = guide_legend(override.aes = list(alpha = 1))) + 
+  theme(legend.position = c(1,1), legend.justification = c(1,1)) + 
+  labs(x = "Mean GFP intensity",
+       y = "Mean CFP intensity",
+       color = "CFP signal source")
+
+p4 <- drops %>% 
+  # dplyr::filter(channel == "RFP") %>% 
+  left_join(blueClusters, by = c("nd_file", "series", "incubation", "roi_id")) %>% 
+  ggplot(aes(x = mean, y = max)) + 
+  geom_point(aes(color = blue), alpha = 0.2) + 
+  facet_wrap(~channel, scales = "free") + 
+  theme_pretty_thesis2() + 
+  # scale_color_brewer(type = "qual") + 
+  scale_color_manual(values = c("mTurquoise" = "cyan3", "Atto488" = "darkseagreen"), labels =c("Atto488", "mTurquoise")) +
+  guides(color = guide_legend(override.aes = list(alpha = 1))) + 
+  labs(x = "Mean intensity",
+       y = "Maximum intensity",
+       color = "CFP cluster") +
+  theme(legend.position = c(0,1), legend.justification = c(0,1))
+
+p5 <- drops %>% 
+  filter(channel == "RFP") %>% 
+  dplyr::mutate(call_cell = ifelse(max > 450, TRUE, FALSE)) %>% 
+  ggplot(aes(x = max)) + 
+  geom_histogram(aes(fill = call_cell), bins = 100, position = "stack") + 
+  # facet_wrap(~incubation, ncol = 1) + 
+  scale_fill_manual(values = c("#999999", "#F21A00"), labels = c("diffused mCherry", "intact cell")) + 
+  theme_pretty_thesis2() + 
+  guides(fill = guide_legend(title = NULL, direction = "horizontal"))+
+  labs(x = "RFP maximum intensity",
+       y = "Droplets")+
+  theme(axis.title.x = element_blank(),
+        plot.margin = margin(t=0.4, b = 0.2, unit = "cm"),
+        legend.position = c(1,1), legend.justification = c(1,1))
+
+p6 <- drops %>% 
+  filter(channel == "RFP") %>% 
+  dplyr::mutate(call_cell = ifelse(max > 450, TRUE, FALSE)) %>% 
+  ggplot(aes(x = max)) + 
+  geom_histogram(aes(fill = call_cell), bins = 100, show.legend = FALSE) + 
+  geom_vline(xintercept = 450, linetype = "dashed", linewidth = 0.5) + 
+  scale_fill_manual(values = c("#999999", "#F21A00")) + 
+  theme_pretty_thesis2() + 
+  labs(x = "Maximum RFP intensity in a droplet",
+       y = "Droplets")+
+  xlim(c(0, 1000))
+
+p7 <- ggplot()+theme_pretty_thesis2()
+```
+
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=6.14}
+layout <- "
+AC
+BC
+DD
+DD
+EG
+FG
+"
+wrap_plots(p1, p2, p3, p4, p5, p6, p7) +
+  plot_layout(design = layout) + 
+  plot_annotation(tag_levels = 'A',
+                  theme = theme(plot.margin = margin(t = 1,l = 1,b = 1,r = 1)))
+ggsave("output/thesis_plots/04_phage_image_analysis.pdf", width = textwidth, height = textwidth/3*4)
+ggsave("/home/fynn/Code/masterthesis/figures/04_phage_image_analysis.pdf", width = textwidth, height = textwidth/3*4)
+```
+
+
+
 
 
 
@@ -548,15 +650,17 @@ d %>%
   dplyr::mutate(incubation = stringr::str_sub(incubation, 1, 5)) %>% 
   ggplot(aes(x = incubation, y = percentage_intact, fill = blue)) + 
   geom_col(position = position_dodge(width = 0.6), alpha = 1, width = 0.5) +
-  scale_fill_manual(values = c("darkseagreen", "cyan3"), labels = c("Atto488 (T7 phage)", "mTurquoise (control)"))+
-  theme_pretty_thesis() + 
-  theme(legend.position = "bottom", legend.box.margin = margin(),
+  scale_fill_manual(values = c("darkseagreen", "cyan3"), labels = c("T7 phage + Atto488", "mTurquoise (control)"))+
+  theme_pretty_thesis2() + 
+  theme(legend.position = "right", 
+        legend.justification = c(0,0.5),
+        legend.box.margin = margin(),
         plot.margin = margin(1,1,1,1),
         legend.margin = margin(),
         legend.background = element_blank())+
-  guides(fill = guide_legend(title = NULL, direction = "horizontal")) + 
+  guides(fill = guide_legend(direction = "vertical")) + 
   labs(x = "Incubation time [h]",
-       y = "Percentage of droplets containing intact cell",
+       y = "Droplets containing intact cell [%]",
        # title = "Phage droplets contain fewer intact bacteria cells after incubation, compared to control group",
        fill = "Droplet content")
 ```
@@ -564,8 +668,8 @@ d %>%
 
 
 ```{r, eval=FALSE, fig.width=6.14, fig.height=4.1}
-ggsave("output/thesis_plots/04_phage_results.pdf", width = textwidth/3*2, height = textwidth/2)
-ggsave("/home/fynn/Code/masterthesis/figures/04_phage_results.pdf", width = textwidth/3*2, height = textwidth/2)
+ggsave("output/thesis_plots/04_phage_results.pdf", width = textwidth, height = textwidth/2)
+ggsave("/home/fynn/Code/masterthesis/figures/04_phage_results.pdf", width = textwidth, height = textwidth/2)
 ```
 
 

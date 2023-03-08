@@ -82,7 +82,7 @@ theme_pretty_thesis2 <- function() {
           # legend.box.spacing = margin(b=0.5, r=0.5, unit="cm"),
           legend.key.size = unit(0.3, "cm"),
           plot.tag.position = c(0,1),
-          plot.tag = element_text(vjust = 1, hjust = 0),
+          plot.tag = element_text(vjust = 1, hjust = 0, face = "bold"),
           strip.background = element_rect(fill = "#dad7cb"),
           strip.text = element_text(size = 8)
           )

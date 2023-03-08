@@ -1212,7 +1212,7 @@ ggsave("output/plots/04_picoinjector_characterization_width_area.png", width = 9
 
 
 ```{r}
-textwidth <- 6.14
+textwidth <- 6.10356
 ```
 
 

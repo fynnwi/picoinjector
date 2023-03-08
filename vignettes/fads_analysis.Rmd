@@ -278,7 +278,7 @@ tidyr::crossing("k" = seq(0,10),
 ### Thesis plots
 
 ```{r}
-textwidth <- 6.14
+textwidth <- 6.10356
 ```
 
 04_bacteria_results
