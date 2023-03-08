@@ -359,9 +359,66 @@ ggsave("/home/fynn/Code/masterthesis/figures/si_bacteria_poisson_occupancy.pdf",
 ```
 
 
+04_fads_individual_cells
+
+```{r}
+signal <- readr::read_table("/run/media/fynn/T7/masterthesis/Nyancat/20221216/matlab_analysis/Signal_8_ggplot_wav.txt", show_col_types = F)
+redPeaks <- readr::read_table("/run/media/fynn/T7/masterthesis/Nyancat/20221216/matlab_analysis/Signal_8_ggplot_redpeaks.txt", show_col_types = F,
+                              col_names = c("t_start", "t_max", "t_end", "voltage", "width", "spacing", "area")) %>% 
+  dplyr::mutate("channel" = "red")
+greenPeaks <- readr::read_table("/run/media/fynn/T7/masterthesis/Nyancat/20221216/matlab_analysis/Signal_8_ggplot_greenpeaks.txt", show_col_types = F,
+                              col_names = c("t_start", "t_max", "t_end", "voltage", "width", "spacing", "area")) %>% 
+  dplyr::mutate("channel" = "green")
+
+peaks <- dplyr::bind_rows(redPeaks, greenPeaks)
+```
 
 
+Assemble plot:
 
+```{r, fig.width=3, fig.height=3}
+p1 <- signal %>% 
+  dplyr::filter(t > 95.66 & t < 95.69) %>% 
+  tidyr::pivot_longer(-t) %>% 
+  ggplot(aes(x = t, y = value, color = name)) + 
+  geom_line(linewidth = 0.5) + 
+  geom_point(data = peaks, aes(x = t_max, y = voltage, color = channel), shape = 1, size = 2) + 
+  scale_color_manual(values = c("#6fb142", "#ad232b"), labels = c("green TODO", "red")) +
+  theme_pretty_thesis2() + 
+  labs(x = "Time [s]",
+       y = "PMT signal [V]",
+       color = "Photomultiplier tube") +
+  theme(legend.position = c(0,1), legend.justification = c(0,1))+
+  coord_cartesian(xlim = c(95.66, 95.69), ylim = c(0, 0.05))
+p1
+```
+
+
+```{r, fig.width=3}
+p2 <- signal %>% 
+  dplyr::filter(t > 99 & t < 100) %>% 
+  tidyr::pivot_longer(-t) %>% 
+  ggplot(aes(x = t, y = value, color = name)) + 
+  geom_line(linewidth = 0.5, show.legend = F) + 
+  geom_point(data = peaks, aes(x = t_max, y = voltage, color = channel), shape = 1, size = 2, show.legend = F) + 
+  scale_color_manual(values = c("#6fb142", "#ad232b"), labels = c("green TODO", "red")) +
+  theme_pretty_thesis2() + 
+  labs(x = "Time [s]",
+       y = "PMT signal [V]",
+       color = "Photomultiplier tube") +
+  theme(legend.position = c(0,1), legend.justification = c(0,1))+
+  coord_cartesian(xlim = c(99.5125, 99.518), ylim = c(0, 0.05))
+p2
+```
+
+
+```{r, eval=FALSE, fig.width=6.14, fig.height=3.09}
+p1 + theme(plot.margin = margin(r = 0.4, unit = "cm"))+p2 + 
+  plot_annotation(tag_levels = "A",
+                  theme = theme(plot.margin = margin(1,1,1,1, unit = "mm")))
+ggsave("output/thesis_plots/04_fads_individual_cells.pdf", width = textwidth, height = textwidth/2)
+ggsave("/home/fynn/Code/masterthesis/figures/04_fads_individual_cells.pdf", width = textwidth, height = textwidth/2)
+```
 
 
 ## Picoinjecting Atto488 into resorufin droplets (2022-11-17)
