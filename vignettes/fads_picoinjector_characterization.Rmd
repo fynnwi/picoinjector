@@ -23,6 +23,9 @@ library(wesanderson)
 library(patchwork)
 ```
 
+
+
+
 ## Picoinjecting black ink and recording videos at 4000 fps
 
 Black ink was injected into ~ 30 µm droplets and videos were recorded using a high-speed camera.
@@ -1480,6 +1483,34 @@ ggsave("/home/fynn/Code/masterthesis/figures/04_attodye_results_2.pdf", width = 
 
 
 
+## Thesis statistics
+
+### Injecting black ink
+
+```{r}
+d <- dropletSummary %>% 
+  filter(ac_field == TRUE) %>% 
+  mutate("water_oil_ratio" = p_water/(q_emulsion+q_oil_est),
+         "injected_volume" = sapply(median_diameter * 1e-6, get_volume_change, 30e-6) * 1e15)
+m <- lm(injected_volume ~ water_oil_ratio, data = d)
+summary(m)
+cor(d$injected_volume, d$water_oil_ratio, method = "pearson")
+
+d %>% 
+  group_by(q_emulsion) %>% 
+  summarise("dv_min" = min(injected_volume),
+            "dv_max" = max(injected_volume))
+```
+
+
+
+### FADS-based picoinjector characterization
+
+```{r}
+dropsCorrected %>% 
+  group_by(q_emulsion) %>% 
+  summarise("freq" = mean(frequency))
+```
 
 
 
